@@ -18,7 +18,7 @@ services:
     environment:
       - HTTP_ADDR=:8080
       - SMTP_ADDR=:25
-      - DOMAIN=${DOMAIN:-101.44.160.108}  # 从 .env 读取，默认使用 IP
+      - DOMAIN=${DOMAIN:-IP}  # 从 .env 读取，默认使用 IP
       - MESSAGE_TTL=${MESSAGE_TTL:-3600}  # 邮件保留时间（秒），默认 1 小时
       - TZ=${TZ:-Asia/Shanghai}
     

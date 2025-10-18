@@ -1,4 +1,4 @@
-# Temp Mail - 临时邮箱服务# Temp Mail - 临时邮箱服务# Temp Mail - 临时邮箱服务
+# Temp Mail - 临时邮箱服务# Temp Mail - 临时邮箱服务# Temp Mail - 临时邮箱服务# Temp Mail - 临时邮箱服务
 
 
 
@@ -6,7 +6,7 @@
 
 
 
-## ✨ 特性一个轻量级的临时邮箱服务，使用 Go 语言实现。支持收发邮件，提供简洁的 Web 界面。一个轻量级的临时邮箱服务，使用 Go 语言实现。
+## ✨ 特性一个轻量级的临时邮箱服务，使用 Go 语言实现。支持收发邮件，提供简洁的 Web 界面。
 
 
 
@@ -14,409 +14,829 @@
 
 - 📤 **SMTP 邮件发送**：使用临时邮箱地址发送邮件，自动查找 MX 记录
 
-- 🎯 **标签页界面**：收件箱和发送邮件切换方便## ✨ 特性## ✨ 特性
+- 🔒 **STARTTLS 支持**：支持加密连接，提高安全性## ✨ 特性一个轻量级的临时邮箱服务，使用 Go 语言实现。支持收发邮件，提供简洁的 Web 界面。一个轻量级的临时邮箱服务，使用 Go 语言实现。
+
+- 🎯 **标签页界面**：收件箱和发送邮件切换方便
 
 - 💾 **内存存储**：邮件自动过期（默认 1 小时）
 
 - 🐳 **Docker 支持**：一键部署，镜像仅 24.5MB
 
-- 🔧 **灵活配置**：支持 IP 或自定义域名，无需修改代码
+- 🔧 **灵活配置**：支持 IP 或自定义域名，无需修改代码- 📧 **SMTP 邮件接收**：监听 25 端口，接收外部邮件
+
+
+
+---- 📤 **SMTP 邮件发送**：使用临时邮箱地址发送邮件，自动查找 MX 记录
+
+
+
+## 🚀 快速开始- 🎯 **标签页界面**：收件箱和发送邮件切换方便## ✨ 特性## ✨ 特性
+
+
+
+### Docker Compose 部署（推荐）- 💾 **内存存储**：邮件自动过期（默认 1 小时）
+
+
+
+```bash- 🐳 **Docker 支持**：一键部署，镜像仅 24.5MB
+
+# 1. 克隆项目
+
+git clone https://github.com/Nei-Xin/temp_mail.git- 🔧 **灵活配置**：支持 IP 或自定义域名，无需修改代码
+
+cd temp_mail
 
 - 📧 **SMTP 邮件接收**：监听 25 端口，接收外部邮件- 📧 SMTP 邮件接收（端口 25）
 
----
+# 2. 修改配置（可选）
 
-- 📤 **SMTP 邮件发送**：使用临时邮箱地址发送邮件，自动查找 MX 记录- 📤 SMTP 邮件发送（支持 Gmail、163、QQ 等）
+nano .env  # 修改 DOMAIN 为你的域名或 IP---
+
+
+
+# 3. 启动服务- 📤 **SMTP 邮件发送**：使用临时邮箱地址发送邮件，自动查找 MX 记录- 📤 SMTP 邮件发送（支持 Gmail、163、QQ 等）
+
+docker-compose up -d
 
 ## 🚀 快速开始
 
-- 🎯 **标签页界面**：收件箱和发送邮件切换方便- 🌐 Web 界面（端口 8080）
+# 4. 访问 Web 界面
+
+http://your-server:8080- 🎯 **标签页界面**：收件箱和发送邮件切换方便- 🌐 Web 界面（端口 8080）
+
+```
 
 ### Docker Compose 部署（推荐）
+
+### Docker Run 部署
 
 - 💾 **内存存储**：邮件自动过期（默认 1 小时）- 💾 内存存储，自动过期（默认 30 分钟）
 
 ```bash
 
-# 1. 克隆项目- 🐳 **Docker 支持**：一键部署，镜像仅 24.5MB- 🐳 Docker 支持，一键部署
-
-git clone <your-repo>
-
-cd temp_mail- 🔧 **灵活配置**：支持 IP 或自定义域名，无需修改代码- 🔧 环境变量配置，无需修改代码
+docker pull neixin/temp-mail:v2.1```bash
 
 
 
-# 2. 修改配置（可选）
+docker run -d \# 1. 克隆项目- 🐳 **Docker 支持**：一键部署，镜像仅 24.5MB- 🐳 Docker 支持，一键部署
 
-nano .env  # 修改 DOMAIN 为你的域名或 IP
+  --name temp-mail \
 
-------
+  -p 8080:8080 \git clone <your-repo>
 
-# 3. 启动服务
+  -p 25:25 \
 
-docker-compose up -d
+  -e DOMAIN=your-domain.com \cd temp_mail- 🔧 **灵活配置**：支持 IP 或自定义域名，无需修改代码- 🔧 环境变量配置，无需修改代码
 
+  -e MESSAGE_TTL=1h \
 
-
-# 4. 访问 Web 界面## 🚀 快速开始## 🚀 快速开始
-
-http://your-server:8080
+  neixin/temp-mail:v2.1
 
 ```
 
+# 2. 修改配置（可选）
 
+### 本地编译运行
 
-### Docker Run 部署### Docker Compose 部署（推荐）### 方式 1: Docker Compose（推荐）
-
-
+nano .env  # 修改 DOMAIN 为你的域名或 IP
 
 ```bash
 
-docker pull neixin/temp-mail:v2.0
+# 1. 安装依赖------
 
-```bash```bash
+go mod tidy
 
-docker run -d \
+# 3. 启动服务
 
-  --name temp-mail \# 1. 克隆项目# 1. 修改配置
+# 2. 编译
 
-  -p 8080:8080 \
-
-  -p 25:25 \git clone <your-repo>nano .env  # 修改 DOMAIN 为你的域名
-
-  -e DOMAIN=101.44.160.108 \
-
-  -e MESSAGE_TTL=3600 \cd temp_mail
-
-  neixin/temp-mail:v2.0
-
-```# 2. 启动服务
+go build -o temp-mail ./cmd/temp-maildocker-compose up -d
 
 
-
-### 本地编译运行# 2. 修改配置（可选）docker-compose up -d
-
-
-
-```bashnano .env  # 修改 DOMAIN 为你的域名或 IP
-
-# 1. 安装依赖
-
-go mod tidy# 3. 访问 Web 界面
-
-
-
-# 2. 编译# 3. 启动服务http://localhost:8080
-
-go build -o temp-mail ./cmd/temp-mail
-
-docker-compose up -d```
 
 # 3. 运行
 
 ./temp-mail
 
+# 4. 访问 Web 界面## 🚀 快速开始## 🚀 快速开始
 
+# 4. 访问
 
-# 4. 访问# 4. 访问 Web 界面### 方式 2: Docker Run
+http://localhost:8080http://your-server:8080
 
-http://localhost:8080
+```
 
-```http://your-server:8080
+```
 
-
-
----``````bash
-
-
-
-## ⚙️ 配置docker run -d \
+---
 
 
 
-通过 `.env` 文件或环境变量配置：### Docker Run 部署  --name temp-mail \
+## ⚙️ 配置
+
+### Docker Run 部署### Docker Compose 部署（推荐）### 方式 1: Docker Compose（推荐）
+
+通过 `.env` 文件或环境变量配置：
 
 
 
-| 变量 | 默认值 | 说明 |  -p 8080:8080 \
+| 变量 | 默认值 | 说明 |
 
-|------|--------|------|
+|------|--------|------|```bash
 
-| `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |```bash  -p 25:25 \
+| `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |
 
-| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |
+| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |docker pull neixin/temp-mail:v2.0
 
-| `DOMAIN` | `localhost` | 邮件域名（支持 IP 地址） |docker pull neixin/temp-mail:v2.0  -e DOMAIN=mail.example.com \
+| `DOMAIN` | `localhost` | 邮件域名（支持 IP 地址） |
 
-| `MESSAGE_TTL` | `3600` | 邮件保留时间（秒） |
+| `MESSAGE_TTL` | `1h` | 邮件保留时间（支持 `s`/`m`/`h`，如 `30m`、`2h`） |```bash```bash
 
-| `TZ` | `Asia/Shanghai` | 时区 |  neixin/temp-mail:latest
+| `TZ` | `Asia/Shanghai` | 时区 |
 
+docker run -d \
 
+**配置文件示例（.env）：**
 
-**配置文件示例（.env）：**docker run -d \```
+  --name temp-mail \# 1. 克隆项目# 1. 修改配置
 
+```bash
 
+HTTP_ADDR=:8080  -p 8080:8080 \
 
-```bash  --name temp-mail \
+SMTP_ADDR=:25
 
-HTTP_ADDR=:8080
+DOMAIN=mail.example.com  -p 25:25 \git clone <your-repo>nano .env  # 修改 DOMAIN 为你的域名
 
-SMTP_ADDR=:25  -p 8080:8080 \### 方式 3: 本地编译运行
+MESSAGE_TTL=1h
 
-DOMAIN=mail.example.com
+TZ=Asia/Shanghai  -e DOMAIN=101.44.160.108 \
 
-MESSAGE_TTL=3600  -p 25:25 \
+```
 
-TZ=Asia/Shanghai
+  -e MESSAGE_TTL=3600 \cd temp_mail
 
-```  -e DOMAIN=101.44.160.108 \```bash
+---
 
+  neixin/temp-mail:v2.0
 
+## 📖 使用说明
 
----  -e MESSAGE_TTL=3600 \# 1. 编译
+```# 2. 启动服务
 
-
-
-## 📖 使用说明  neixin/temp-mail:v2.0go mod tidy
-
-
-
-### 接收邮件```go build ./cmd/temp-mail
+### 接收邮件
 
 
 
 1. 访问 Web 界面（http://your-server:8080）
 
-2. 输入自定义邮箱名称，点击"创建邮箱"
+2. 输入自定义邮箱名称，点击"创建邮箱"### 本地编译运行# 2. 修改配置（可选）docker-compose up -d
 
-3. 复制生成的邮箱地址（如：test@your-domain.com）### 本地编译运行# 2. 运行
+3. 复制生成的邮箱地址（如：`test@your-domain.com`）
 
 4. 使用该地址接收邮件
 
-5. 邮件会自动显示在"📨 收件箱"标签页中./temp-mail
+5. 邮件会自动显示在"📨 收件箱"标签页中
 
+```bashnano .env  # 修改 DOMAIN 为你的域名或 IP
 
+### 发送邮件
 
-### 发送邮件```bash
+# 1. 安装依赖
 
+1. 切换到"📤 发送邮件"标签页
 
+2. 填写以下信息：go mod tidy# 3. 访问 Web 界面
 
-1. 切换到"📤 发送邮件"标签页# 1. 安装依赖# 3. 访问
-
-2. 填写以下信息：
-
-   - **发件人**：输入邮箱本地部分（如：test）go mod tidyhttp://localhost:8080
+   - **发件人**：输入邮箱本地部分（如：`test`）
 
    - **收件人**：目标邮箱地址（多个用逗号分隔）
 
-   - **主题**：邮件主题```
+   - **主题**：邮件主题
 
-   - **内容**：邮件正文
+   - **内容**：邮件正文# 2. 编译# 3. 启动服务http://localhost:8080
 
-3. 点击"📤 发送"按钮# 2. 编译
+3. 点击"📤 发送"按钮
 
-4. 如果发件人邮箱不存在，系统会自动创建
+4. 如果发件人邮箱不存在，系统会自动创建go build -o temp-mail ./cmd/temp-mail
 
-go build -o temp-mail ./cmd/temp-mail---
 
-**工作原理**：
+
+**工作原理**：docker-compose up -d```
 
 - 使用您创建的临时邮箱地址作为发件人
 
-- 系统自动查找收件人的 MX 记录
+- 系统自动查找收件人的 MX 记录# 3. 运行
 
-- 直接连接对方邮件服务器发送邮件# 3. 运行## ⚙️ 配置
+- 直接连接对方邮件服务器发送邮件（支持 STARTTLS 加密）
 
-- 无需配置第三方 SMTP 服务
+- 无需配置第三方 SMTP 服务./temp-mail
 
-./temp-mail
+
 
 **⚠️ 发送限制说明**：
 
-- ✅ **可以发送**：QQ.com、163.com、126.com 等国内邮箱通过环境变量配置，无需修改代码：
+- ✅ **可以发送**：QQ.com、163.com、126.com、Sina.com.cn 等国内邮箱（成功率 95%+）
 
-- ⚠️ **可能失败**：Gmail、Hotmail、Outlook 等国际邮箱（它们有严格的反垃圾邮件策略，会拒绝未认证 IP 的连接）
+- ❌ **无法发送**：Gmail、Outlook、Hotmail 等国际邮箱# 4. 访问# 4. 访问 Web 界面### 方式 2: Docker Run
 
-- 💡 **提高成功率**：配置 DNS（SPF、PTR 记录）、使用有信誉的服务器 IP# 4. 访问
+  - **原因**：这些服务商要求发件 IP 具有高信誉度，会拒绝云服务器 IP 的直接连接
 
+  - **错误提示**：`Gmail 拒绝，建议用 QQ/163` 或 `Outlook 拒绝，建议用 QQ/163`http://localhost:8080
 
+- 💡 **建议**：本服务主要用于测试和接收邮件，发送功能建议使用国内邮箱
 
----http://localhost:8080### 基础配置
-
-
-
-## 🌐 生产环境部署```
-
-
-
-### 端口要求| 变量 | 默认值 | 说明 |
-
-
-
-| 端口 | 用途 | 说明 |---|------|--------|------|
-
-|------|------|------|
-
-| **25** | SMTP 邮件接收 | 接收外部邮件（Gmail、Outlook 等） || `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |
-
-| **8080** | HTTP Web 界面 | 查看和发送邮件 |
-
-## ⚙️ 配置| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |
-
-### DNS 配置（可选）
-
-| `DOMAIN` | `tmp.local` | 邮件域名 |
-
-如果使用自定义域名，建议配置以下 DNS 记录以提高邮件送达率：
-
-通过 `.env` 文件或环境变量配置：| `MESSAGE_TTL` | `30m` | 邮件保留时间 |
-
-```
-
-类型    名称                    值                      优先级| `TZ` | `Asia/Shanghai` | 时区 |
-
-A       mail.example.com        服务器IP                -
-
-MX      example.com             mail.example.com        10| 变量 | 默认值 | 说明 |
-
-TXT     example.com             v=spf1 ip4:服务器IP -all   -
-
-```|------|--------|------|**配置文件示例（.env）：**
-
-
-
-**说明**：| `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |
-
-- **A 记录**：域名指向服务器 IP
-
-- **MX 记录**：邮件路由记录| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |```bash
-
-- **SPF 记录**：提高发送邮件的可信度，减少被拒绝的概率
-
-- **PTR 记录**：反向解析，需要联系服务器提供商配置| `DOMAIN` | `localhost` | 邮件域名（支持 IP 地址） |# 基础配置
-
-
-
-### 防火墙配置| `MESSAGE_TTL` | `3600` | 邮件保留时间（秒） |HTTP_ADDR=:8080
-
-
-
-```bash| `TZ` | `Asia/Shanghai` | 时区 |SMTP_ADDR=:25
-
-# 开放端口
-
-sudo ufw allow 25/tcpDOMAIN=mail.example.com
-
-sudo ufw allow 8080/tcp
-
-sudo ufw enable**配置文件示例（.env）：**MESSAGE_TTL=30m
-
-```
-
-TZ=Asia/Shanghai
+```http://your-server:8080
 
 ---
 
-```bash```
 
-## 📡 API 接口
 
-HTTP_ADDR=:8080
+## 🌐 生产环境部署
 
-### 创建邮箱地址
+---``````bash
 
-SMTP_ADDR=:25---
+### 端口要求
 
-```http
 
-POST /api/address?local=testDOMAIN=mail.example.com
+
+| 端口 | 用途 | 说明 |
+
+|------|------|------|## ⚙️ 配置docker run -d \
+
+| **25** | SMTP 邮件接收 | 接收外部邮件（Gmail、Outlook 等） |
+
+| **8080** | HTTP Web 界面 | 查看和发送邮件 |
+
+
+
+### DNS 配置（推荐）通过 `.env` 文件或环境变量配置：### Docker Run 部署  --name temp-mail \
+
+
+
+如果使用自定义域名，建议配置以下 DNS 记录以提高邮件送达率：
+
+
+
+```| 变量 | 默认值 | 说明 |  -p 8080:8080 \
+
+类型    名称                    值                      优先级
+
+A       mail.example.com        服务器IP                -|------|--------|------|
+
+MX      example.com             mail.example.com        10
+
+TXT     example.com             v=spf1 ip4:服务器IP -all   -| `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |```bash  -p 25:25 \
 
 ```
 
-MESSAGE_TTL=3600## 🌐 生产环境部署
+| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |
 
-**响应**：
+**说明**：
 
-```jsonTZ=Asia/Shanghai
+- **A 记录**：域名指向服务器 IP（必需）| `DOMAIN` | `localhost` | 邮件域名（支持 IP 地址） |docker pull neixin/temp-mail:v2.0  -e DOMAIN=mail.example.com \
+
+- **MX 记录**：邮件路由记录（必需）
+
+- **SPF 记录**：提高发送邮件的可信度，减少被拒绝的概率（推荐）| `MESSAGE_TTL` | `3600` | 邮件保留时间（秒） |
+
+- **PTR 记录**：反向解析，需要联系服务器提供商配置（推荐）
+
+| `TZ` | `Asia/Shanghai` | 时区 |  neixin/temp-mail:latest
+
+### 防火墙配置
+
+
+
+```bash
+
+# 开放端口**配置文件示例（.env）：**docker run -d \```
+
+sudo ufw allow 25/tcp
+
+sudo ufw allow 8080/tcp
+
+sudo ufw enable
+
+``````bash  --name temp-mail \
+
+
+
+---HTTP_ADDR=:8080
+
+
+
+## 📡 API 接口SMTP_ADDR=:25  -p 8080:8080 \### 方式 3: 本地编译运行
+
+
+
+### 创建邮箱地址DOMAIN=mail.example.com
+
+
+
+```httpMESSAGE_TTL=3600  -p 25:25 \
+
+POST /api/address?local=test
+
+```TZ=Asia/Shanghai
+
+
+
+**响应**：```  -e DOMAIN=101.44.160.108 \```bash
+
+```json
 
 {
 
-  "address": "test@example.com",```### 端口要求
+  "address": "test@example.com",
 
-  "local": "test",
+  "local": "test",---  -e MESSAGE_TTL=3600 \# 1. 编译
 
   "ttl": 3600
 
 }
 
-```---| 端口 | 用途 | 说明 |
-
-
-
-### 获取邮件列表|------|------|------|
-
-
-
-```http## 📖 使用说明| **25** | SMTP 邮件接收 | 接收外部邮件（Gmail、Outlook 等） |
-
-GET /api/messages/{local}
-
-```| **8080** | HTTP Web 界面 | 查看邮件 |
-
-
-
-**响应**：### 接收邮件
-
-```json
-
-[### DNS 配置
-
-  {
-
-    "id": "abc123",1. 访问 Web 界面（http://your-server:8080）
-
-    "from": "sender@gmail.com",
-
-    "to": ["test@example.com"],2. 输入自定义邮箱名称，点击"创建邮箱"添加以下 DNS 记录：
-
-    "subject": "测试邮件",
-
-    "received": "2025-10-18T10:30:00Z"3. 复制生成的邮箱地址（如：test@your-domain.com）
-
-  }
-
-]4. 使用该地址接收邮件```
-
 ```
 
-5. 邮件会自动显示在"📨 收件箱"标签页中类型    名称                    值                  优先级
+## 📖 使用说明  neixin/temp-mail:v2.0go mod tidy
 
-### 获取邮件详情
+### 获取邮件列表
 
-A       mail.example.com        服务器IP            -
+
 
 ```http
 
-GET /api/messages/{local}/{id}### 发送邮件MX      example.com             mail.example.com    10
+GET /api/messages/{local}### 接收邮件```go build ./cmd/temp-mail
 
-GET /api/messages/{local}/{id}?format=raw  # 获取原始邮件
+```
+
+
+
+**响应**：
+
+```json1. 访问 Web 界面（http://your-server:8080）
+
+[
+
+  {2. 输入自定义邮箱名称，点击"创建邮箱"
+
+    "id": "abc123",
+
+    "from": "sender@gmail.com",3. 复制生成的邮箱地址（如：test@your-domain.com）### 本地编译运行# 2. 运行
+
+    "to": ["test@example.com"],
+
+    "subject": "测试邮件",4. 使用该地址接收邮件
+
+    "received": "2025-10-18T10:30:00Z"
+
+  }5. 邮件会自动显示在"📨 收件箱"标签页中./temp-mail
+
+]
+
+```
+
+
+
+### 获取邮件详情### 发送邮件```bash
+
+
+
+```http
+
+GET /api/messages/{local}/{id}
+
+GET /api/messages/{local}/{id}?format=raw  # 获取原始邮件1. 切换到"📤 发送邮件"标签页# 1. 安装依赖# 3. 访问
+
+```
+
+2. 填写以下信息：
+
+### 发送邮件
+
+   - **发件人**：输入邮箱本地部分（如：test）go mod tidyhttp://localhost:8080
+
+```http
+
+POST /api/send   - **收件人**：目标邮箱地址（多个用逗号分隔）
+
+Content-Type: application/json
+
+   - **主题**：邮件主题```
+
+{
+
+  "from": "test",   - **内容**：邮件正文
+
+  "to": ["recipient@example.com"],
+
+  "subject": "测试邮件",3. 点击"📤 发送"按钮# 2. 编译
+
+  "body": "邮件正文内容",
+
+  "html": "<p>HTML内容</p>"4. 如果发件人邮箱不存在，系统会自动创建
+
+}
+
+```go build -o temp-mail ./cmd/temp-mail---
+
+
+
+**响应（成功）**：**工作原理**：
+
+```json
+
+{- 使用您创建的临时邮箱地址作为发件人
+
+  "success": true,
+
+  "message": "邮件已发送",- 系统自动查找收件人的 MX 记录
+
+  "from": "test@example.com"
+
+}- 直接连接对方邮件服务器发送邮件# 3. 运行## ⚙️ 配置
+
+```
+
+- 无需配置第三方 SMTP 服务
+
+**响应（失败）**：
+
+```json./temp-mail
+
+{
+
+  "error": "Gmail 拒绝，建议用 QQ/163"**⚠️ 发送限制说明**：
+
+}
+
+```- ✅ **可以发送**：QQ.com、163.com、126.com 等国内邮箱通过环境变量配置，无需修改代码：
+
+
+
+---- ⚠️ **可能失败**：Gmail、Hotmail、Outlook 等国际邮箱（它们有严格的反垃圾邮件策略，会拒绝未认证 IP 的连接）
+
+
+
+## 🐳 Docker 镜像- 💡 **提高成功率**：配置 DNS（SPF、PTR 记录）、使用有信誉的服务器 IP# 4. 访问
+
+
+
+### 镜像信息
+
+
+
+- **镜像名称**：`neixin/temp-mail`---http://localhost:8080### 基础配置
+
+- **最新版本**：`v2.1`
+
+- **镜像大小**：~24.5MB
+
+- **基础镜像**：Alpine Linux
+
+## 🌐 生产环境部署```
+
+### 拉取镜像
+
+
+
+```bash
+
+docker pull neixin/temp-mail:v2.1### 端口要求| 变量 | 默认值 | 说明 |
+
+docker pull neixin/temp-mail:latest
+
+```
+
+
+
+### 构建镜像| 端口 | 用途 | 说明 |---|------|--------|------|
+
+
+
+```bash|------|------|------|
+
+# 构建
+
+docker build -t neixin/temp-mail:v2.1 .| **25** | SMTP 邮件接收 | 接收外部邮件（Gmail、Outlook 等） || `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |
+
+
+
+# 运行| **8080** | HTTP Web 界面 | 查看和发送邮件 |
+
+docker run -d -p 8080:8080 -p 25:25 \
+
+  -e DOMAIN=your-domain.com \## ⚙️ 配置| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |
+
+  neixin/temp-mail:v2.1
+
+```### DNS 配置（可选）
+
+
+
+---| `DOMAIN` | `tmp.local` | 邮件域名 |
+
+
+
+## 🔧 开发如果使用自定义域名，建议配置以下 DNS 记录以提高邮件送达率：
+
+
+
+### 项目结构通过 `.env` 文件或环境变量配置：| `MESSAGE_TTL` | `30m` | 邮件保留时间 |
+
+
 
 ``````
 
+temp_mail/
 
+├── cmd/temp-mail/      # 主程序入口类型    名称                    值                      优先级| `TZ` | `Asia/Shanghai` | 时区 |
+
+│   └── main.go
+
+├── internal/A       mail.example.com        服务器IP                -
+
+│   ├── httpapi/        # HTTP 服务和 Web 界面
+
+│   ├── smtpserver/     # SMTP 接收服务器MX      example.com             mail.example.com        10| 变量 | 默认值 | 说明 |
+
+│   ├── smtpclient/     # SMTP 发送客户端（MX 查询 + STARTTLS）
+
+│   └── storage/        # 内存存储TXT     example.com             v=spf1 ip4:服务器IP -all   -
+
+├── Dockerfile          # Docker 镜像构建
+
+├── docker-compose.yml  # Docker Compose 配置```|------|--------|------|**配置文件示例（.env）：**
+
+├── .env                # 环境变量配置
+
+└── README.md           # 项目文档
+
+```
+
+**说明**：| `HTTP_ADDR` | `:8080` | HTTP 服务监听地址 |
+
+### 本地开发
+
+- **A 记录**：域名指向服务器 IP
+
+```bash
+
+# 安装依赖- **MX 记录**：邮件路由记录| `SMTP_ADDR` | `:25` | SMTP 接收服务监听地址 |```bash
+
+go mod tidy
+
+- **SPF 记录**：提高发送邮件的可信度，减少被拒绝的概率
+
+# 运行
+
+go run ./cmd/temp-mail- **PTR 记录**：反向解析，需要联系服务器提供商配置| `DOMAIN` | `localhost` | 邮件域名（支持 IP 地址） |# 基础配置
+
+
+
+# 测试
+
+go test ./...
+
+### 防火墙配置| `MESSAGE_TTL` | `3600` | 邮件保留时间（秒） |HTTP_ADDR=:8080
+
+# 编译
+
+go build -o temp-mail ./cmd/temp-mail
+
+```
+
+```bash| `TZ` | `Asia/Shanghai` | 时区 |SMTP_ADDR=:25
+
+---
+
+# 开放端口
+
+## 💡 注意事项
+
+sudo ufw allow 25/tcpDOMAIN=mail.example.com
+
+1. **数据存储**：所有邮件存储在内存中，重启服务后数据会丢失
+
+2. **端口 25**：监听 25 端口需要 root 权限或使用 Dockersudo ufw allow 8080/tcp
+
+3. **防火墙**：确保开放 25 和 8080 端口
+
+4. **云服务商**：部分云服务商（阿里云、腾讯云）封禁 25 端口，无法接收外部邮件sudo ufw enable**配置文件示例（.env）：**MESSAGE_TTL=30m
+
+5. **DNS 配置**：使用 IP 地址也可以正常工作，DNS 仅用于提高送达率
+
+6. **发送限制**：Gmail/Outlook 等国际邮箱会拒绝云服务器 IP 的直接连接```
+
+
+
+---TZ=Asia/Shanghai
+
+
+
+## 🔒 安全建议---
+
+
+
+- 使用 Nginx 反向代理，配置 SSL/TLS```bash```
+
+- 限制访问来源（防火墙规则）
+
+- 定期更新 Docker 镜像## 📡 API 接口
+
+- 监控日志，防止滥用
+
+- 不要用于生产环境敏感数据HTTP_ADDR=:8080
+
+
+
+---### 创建邮箱地址
+
+
+
+## 📚 常见问题SMTP_ADDR=:25---
+
+
+
+### Q1: 无法接收外部邮件？```http
+
+
+
+**检查**：POST /api/address?local=testDOMAIN=mail.example.com
+
+- DNS MX 记录是否正确
+
+- 防火墙是否开放 25 端口```
+
+- 云服务商是否封禁 25 端口（阿里云、腾讯云默认封禁）
+
+- SMTP 服务是否正常运行：`docker logs temp-mail`MESSAGE_TTL=3600## 🌐 生产环境部署
+
+
+
+### Q2: 为什么无法发送到 Gmail/Outlook？**响应**：
+
+
+
+这是正常现象，不是代码问题。```jsonTZ=Asia/Shanghai
+
+
+
+**原因**：{
+
+- Gmail、Outlook 等大型邮件服务商要求发件 IP 具有高信誉度
+
+- 云服务器 IP（如华为云、阿里云）通常被归类为"低信誉 IP"  "address": "test@example.com",```### 端口要求
+
+- 即使配置了完整的 DNS 记录（SPF、PTR、DKIM），仍可能被拒绝
+
+  "local": "test",
+
+**错误示例**：
+
+```  "ttl": 3600
+
+550 5.7.1 The IP you're using to send mail is not authorized
+
+550 5.7.1 Client host blocked using Spamhaus}
+
+```
+
+```---| 端口 | 用途 | 说明 |
+
+**解决方案**：
+
+- ✅ **接受现实**：使用国内邮箱（QQ/163/126）进行测试
+
+- ⏳ **长期方案**：配置 DKIM + 建立 IP 信誉（需要 2-4 周）
+
+- 💰 **生产环境**：使用 SendGrid、Amazon SES 等专业邮件服务### 获取邮件列表|------|------|------|
+
+
+
+### Q3: 如何使用自定义域名？
+
+
+
+1. 修改 `.env` 文件中的 `DOMAIN````http## 📖 使用说明| **25** | SMTP 邮件接收 | 接收外部邮件（Gmail、Outlook 等） |
+
+2. 配置 DNS A 记录和 MX 记录
+
+3. 重启服务：`docker-compose restart`GET /api/messages/{local}
+
+
+
+### Q4: 邮件保留多久？```| **8080** | HTTP Web 界面 | 查看邮件 |
+
+
+
+默认 1 小时，可通过 `MESSAGE_TTL` 配置（支持 `30m`、`2h`、`24h` 等）。
+
+
+
+### Q5: 如何配置 HTTPS？**响应**：### 接收邮件
+
+
+
+使用 Nginx 反向代理：```json
+
+
+
+```nginx[### DNS 配置
+
+server {
+
+    listen 443 ssl http2;  {
+
+    server_name mail.example.com;
+
+        "id": "abc123",1. 访问 Web 界面（http://your-server:8080）
+
+    ssl_certificate /path/to/cert.pem;
+
+    ssl_certificate_key /path/to/key.pem;    "from": "sender@gmail.com",
+
+    
+
+    location / {    "to": ["test@example.com"],2. 输入自定义邮箱名称，点击"创建邮箱"添加以下 DNS 记录：
+
+        proxy_pass http://localhost:8080;
+
+        proxy_set_header Host $host;    "subject": "测试邮件",
+
+        proxy_set_header X-Real-IP $remote_addr;
+
+    }    "received": "2025-10-18T10:30:00Z"3. 复制生成的邮箱地址（如：test@your-domain.com）
+
+}
+
+```  }
+
+
+
+### Q6: 发送邮件的成功率如何？]4. 使用该地址接收邮件```
+
+
+
+| 邮件服务商 | 成功率 | 说明 |```
+
+|-----------|-------|------|
+
+| QQ.com, 163.com, 126.com | ✅ 95%+ | 配置良好的国内邮箱 |5. 邮件会自动显示在"📨 收件箱"标签页中类型    名称                    值                  优先级
+
+| Sina.com.cn, Sohu.com | ✅ 90%+ | 国内邮箱，较稳定 |
+
+| Gmail, Outlook, Hotmail | ❌ <5% | 严格的 IP 信誉要求 |### 获取邮件详情
+
+| 企业邮箱 | 🔄 50-80% | 取决于具体配置 |
+
+A       mail.example.com        服务器IP            -
+
+---
+
+```http
+
+## 📄 许可证
+
+GET /api/messages/{local}/{id}### 发送邮件MX      example.com             mail.example.com    10
+
+MIT License
+
+GET /api/messages/{local}/{id}?format=raw  # 获取原始邮件
+
+---
+
+``````
+
+## 🙏 致谢
+
+
+
+基于 [emersion/go-smtp](https://github.com/emersion/go-smtp) 构建
 
 ### 发送邮件1. 切换到"📤 发送邮件"标签页
 
+---
 
+
+
+## 🔗 链接
 
 ```http2. 填写以下信息：### 部署步骤
 
-POST /api/send
+- **GitHub**: https://github.com/Nei-Xin/temp_mail
+
+- **Docker Hub**: https://hub.docker.com/r/neixin/temp-mailPOST /api/send
+
+- **问题反馈**: https://github.com/Nei-Xin/temp_mail/issues
 
 Content-Type: application/json   - **发件人**：输入邮箱本地部分（如：test）
 
+---
 
+
+
+**开始使用临时邮箱服务！** 🎉
 
 {   - **收件人**：目标邮箱地址（多个用逗号分隔）```bash
 
