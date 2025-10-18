@@ -1,436 +1,436 @@
 package httpapi
 
 import (
-    "bytes"
-    "encoding/base64"
-    "encoding/json"
-    "fmt"
-    "io"
-    "log"
-    "mime"
-    "net/http"
-    stdmail "net/mail"
-    "strings"
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"mime"
+	"net/http"
+	stdmail "net/mail"
+	"strings"
 
-    "temp_mail/internal/smtpclient"
-    "temp_mail/internal/storage"
+	"temp_mail/internal/smtpclient"
+	"temp_mail/internal/storage"
 )
 
 func NewMux(store storage.Store, domain string, smtpClient *smtpclient.Client) http.Handler {
-    mux := http.NewServeMux()
-    // API
-    mux.HandleFunc("/api/address", func(w http.ResponseWriter, r *http.Request) {
-        switch r.Method {
-        case http.MethodPost:
-            local := r.URL.Query().Get("local")
-            local = sanitizeLocal(local)
-            created := store.CreateAddress(local)
-            writeJSON(w, map[string]interface{}{
-                "address": fmt.Sprintf("%s@%s", created, domain),
-                "local":   created,
-                "ttl":     int(store.TTL().Minutes()),
-            })
-        default:
-            w.WriteHeader(http.StatusMethodNotAllowed)
-        }
-    })
+	mux := http.NewServeMux()
+	// API
+	mux.HandleFunc("/api/address", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			local := r.URL.Query().Get("local")
+			local = sanitizeLocal(local)
+			created := store.CreateAddress(local)
+			writeJSON(w, map[string]interface{}{
+				"address": fmt.Sprintf("%s@%s", created, domain),
+				"local":   created,
+				"ttl":     int(store.TTL().Minutes()),
+			})
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
 
-    mux.HandleFunc("/api/messages/", func(w http.ResponseWriter, r *http.Request) {
-        // /api/messages/{local} or /api/messages/{local}/{id}
-        path := strings.TrimPrefix(r.URL.Path, "/api/messages/")
-        parts := strings.Split(path, "/")
-        if parts[0] == "" {
-            http.NotFound(w, r)
-            return
-        }
-        local := sanitizeLocal(parts[0])
-        if len(parts) == 1 {
-            msgs := store.List(local)
-            writeJSON(w, msgs)
-            return
-        }
-        id := parts[1]
-        msg, ok := store.Get(local, id)
-        if !ok {
-            http.NotFound(w, r)
-            return
-        }
-        switch r.URL.Query().Get("format") {
-        case "raw":
-            w.Header().Set("Content-Type", "message/rfc822")
-            _, _ = w.Write(msg.Raw)
-        default:
-            writeJSON(w, msg)
-        }
-    })
+	mux.HandleFunc("/api/messages/", func(w http.ResponseWriter, r *http.Request) {
+		// /api/messages/{local} or /api/messages/{local}/{id}
+		path := strings.TrimPrefix(r.URL.Path, "/api/messages/")
+		parts := strings.Split(path, "/")
+		if parts[0] == "" {
+			http.NotFound(w, r)
+			return
+		}
+		local := sanitizeLocal(parts[0])
+		if len(parts) == 1 {
+			msgs := store.List(local)
+			writeJSON(w, msgs)
+			return
+		}
+		id := parts[1]
+		msg, ok := store.Get(local, id)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.URL.Query().Get("format") {
+		case "raw":
+			w.Header().Set("Content-Type", "message/rfc822")
+			_, _ = w.Write(msg.Raw)
+		default:
+			writeJSON(w, msg)
+		}
+	})
 
-    // 发送邮件API
-    mux.HandleFunc("/api/send", func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-            w.WriteHeader(http.StatusMethodNotAllowed)
-            return
-        }
+	// 发送邮件API
+	mux.HandleFunc("/api/send", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
 
-        // 解析请求体
-        var req struct {
-            From    string   `json:"from"`    // 发件人本地部分（如 "test"），将拼接域名
-            To      []string `json:"to"`      // 收件人列表（完整邮箱地址）
-            Subject string   `json:"subject"` // 邮件主题
-            Body    string   `json:"body"`    // 邮件正文
-            HTML    string   `json:"html"`    // HTML正文（可选）
-        }
+		// 解析请求体
+		var req struct {
+			From    string   `json:"from"`    // 发件人本地部分（如 "test"），将拼接域名
+			To      []string `json:"to"`      // 收件人列表（完整邮箱地址）
+			Subject string   `json:"subject"` // 邮件主题
+			Body    string   `json:"body"`    // 邮件正文
+			HTML    string   `json:"html"`    // HTML正文（可选）
+		}
 
-        if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-            w.WriteHeader(http.StatusBadRequest)
-            writeJSON(w, map[string]interface{}{
-                "error": "无效的请求格式",
-            })
-            return
-        }
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			writeJSON(w, map[string]interface{}{
+				"error": "无效的请求格式",
+			})
+			return
+		}
 
-        // 验证必填字段
-        if req.From == "" {
-            w.WriteHeader(http.StatusBadRequest)
-            writeJSON(w, map[string]interface{}{
-                "error": "发件人不能为空（请输入您创建的邮箱名称）",
-            })
-            return
-        }
+		// 验证必填字段
+		if req.From == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			writeJSON(w, map[string]interface{}{
+				"error": "发件人不能为空（请输入您创建的邮箱名称）",
+			})
+			return
+		}
 
-        if len(req.To) == 0 {
-            w.WriteHeader(http.StatusBadRequest)
-            writeJSON(w, map[string]interface{}{
-                "error": "收件人不能为空",
-            })
-            return
-        }
+		if len(req.To) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			writeJSON(w, map[string]interface{}{
+				"error": "收件人不能为空",
+			})
+			return
+		}
 
-        if req.Subject == "" {
-            w.WriteHeader(http.StatusBadRequest)
-            writeJSON(w, map[string]interface{}{
-                "error": "主题不能为空",
-            })
-            return
-        }
+		if req.Subject == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			writeJSON(w, map[string]interface{}{
+				"error": "主题不能为空",
+			})
+			return
+		}
 
-        if req.Body == "" && req.HTML == "" {
-            w.WriteHeader(http.StatusBadRequest)
-            writeJSON(w, map[string]interface{}{
-                "error": "邮件内容不能为空",
-            })
-            return
-        }
+		if req.Body == "" && req.HTML == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			writeJSON(w, map[string]interface{}{
+				"error": "邮件内容不能为空",
+			})
+			return
+		}
 
-        // 验证发件人邮箱是否存在
-        fromLocal := sanitizeLocal(req.From)
-        if fromLocal == "" {
-            w.WriteHeader(http.StatusBadRequest)
-            writeJSON(w, map[string]interface{}{
-                "error": "发件人不能为空",
-            })
-            return
-        }
-        
-        // 如果地址不存在，自动创建
-        if !store.AddressExists(fromLocal) {
-            store.CreateAddress(fromLocal)
-            log.Printf("自动创建发件邮箱: %s@%s", fromLocal, domain)
-        }
+		// 验证发件人邮箱是否存在
+		fromLocal := sanitizeLocal(req.From)
+		if fromLocal == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			writeJSON(w, map[string]interface{}{
+				"error": "发件人不能为空",
+			})
+			return
+		}
 
-        // 构造完整的发件人地址
-        fromAddr := fmt.Sprintf("%s@%s", fromLocal, domain)
+		// 如果地址不存在，自动创建
+		if !store.AddressExists(fromLocal) {
+			store.CreateAddress(fromLocal)
+			log.Printf("自动创建发件邮箱: %s@%s", fromLocal, domain)
+		}
 
-        // 发送邮件
-        msg := smtpclient.Message{
-            From:    fromAddr,
-            To:      req.To,
-            Subject: req.Subject,
-            Body:    req.Body,
-            HTML:    req.HTML,
-        }
+		// 构造完整的发件人地址
+		fromAddr := fmt.Sprintf("%s@%s", fromLocal, domain)
 
-        if err := smtpClient.Send(msg); err != nil {
-            log.Printf("发送邮件失败 (from=%s): %v", fromAddr, err)
-            w.WriteHeader(http.StatusInternalServerError)
-            writeJSON(w, map[string]interface{}{
-                "error": fmt.Sprintf("发送失败: %v", err),
-            })
-            return
-        }
+		// 发送邮件
+		msg := smtpclient.Message{
+			From:    fromAddr,
+			To:      req.To,
+			Subject: req.Subject,
+			Body:    req.Body,
+			HTML:    req.HTML,
+		}
 
-        log.Printf("邮件已发送: from=%s, to=%v, subject=%s", fromAddr, req.To, req.Subject)
-        writeJSON(w, map[string]interface{}{
-            "success": true,
-            "message": "邮件已发送",
-            "from":    fromAddr,
-        })
-    })
+		if err := smtpClient.Send(msg); err != nil {
+			log.Printf("发送邮件失败 (from=%s): %v", fromAddr, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			writeJSON(w, map[string]interface{}{
+				"error": fmt.Sprintf("发送失败: %v", err),
+			})
+			return
+		}
 
-    // UI
-    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        if r.URL.Path != "/" {
-            http.NotFound(w, r)
-            return
-        }
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        _, _ = w.Write([]byte(indexHTML))
-    })
-    
-    // Message detail page
-    mux.HandleFunc("/view/", func(w http.ResponseWriter, r *http.Request) {
-        // /view/{local}/{id}
-        path := strings.TrimPrefix(r.URL.Path, "/view/")
-        parts := strings.Split(path, "/")
-        if len(parts) < 2 {
-            http.NotFound(w, r)
-            return
-        }
-        local := sanitizeLocal(parts[0])
-        id := parts[1]
-        
-        msg, ok := store.Get(local, id)
-        if !ok {
-            http.NotFound(w, r)
-            return
-        }
-        
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        _, _ = w.Write([]byte(renderMessageDetailPage(msg, local, domain)))
-    })
-    
-    return mux
+		log.Printf("邮件已发送: from=%s, to=%v, subject=%s", fromAddr, req.To, req.Subject)
+		writeJSON(w, map[string]interface{}{
+			"success": true,
+			"message": "邮件已发送",
+			"from":    fromAddr,
+		})
+	})
+
+	// UI
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(indexHTML))
+	})
+
+	// Message detail page
+	mux.HandleFunc("/view/", func(w http.ResponseWriter, r *http.Request) {
+		// /view/{local}/{id}
+		path := strings.TrimPrefix(r.URL.Path, "/view/")
+		parts := strings.Split(path, "/")
+		if len(parts) < 2 {
+			http.NotFound(w, r)
+			return
+		}
+		local := sanitizeLocal(parts[0])
+		id := parts[1]
+
+		msg, ok := store.Get(local, id)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(renderMessageDetailPage(msg, local, domain)))
+	})
+
+	return mux
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
-    w.Header().Set("Content-Type", "application/json")
-    if err := json.NewEncoder(w).Encode(v); err != nil {
-        log.Printf("writeJSON: %v", err)
-    }
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("writeJSON: %v", err)
+	}
 }
 
 func sanitizeLocal(s string) string {
-    s = strings.ToLower(strings.TrimSpace(s))
-    s = strings.Trim(s, "@ ")
-    if i := strings.IndexByte(s, '@'); i > 0 {
-        s = s[:i]
-    }
-    if i := strings.IndexByte(s, '+'); i > 0 {
-        s = s[:i]
-    }
-    if s == "" {
-        return s
-    }
-    // allow [a-z0-9-.]
-    b := strings.Builder{}
-    for _, ch := range s {
-        if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '.' || ch == '_' {
-            b.WriteRune(ch)
-        }
-    }
-    return b.String()
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.Trim(s, "@ ")
+	if i := strings.IndexByte(s, '@'); i > 0 {
+		s = s[:i]
+	}
+	if i := strings.IndexByte(s, '+'); i > 0 {
+		s = s[:i]
+	}
+	if s == "" {
+		return s
+	}
+	// allow [a-z0-9-.]
+	b := strings.Builder{}
+	for _, ch := range s {
+		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '.' || ch == '_' {
+			b.WriteRune(ch)
+		}
+	}
+	return b.String()
 }
 
 func renderMessageDetailPage(msg storage.Message, local, domain string) string {
-    // Parse email content from raw bytes
-    htmlContent, textContent, _ := parseEmailContent(msg.Raw)
-    
-    // Choose which content to display
-    bodyHTML := ""
-    if htmlContent != "" {
-        bodyHTML = fmt.Sprintf(`<iframe id="html-frame" srcdoc="%s" sandbox="allow-same-origin"></iframe>`, escapeHTMLAttr(htmlContent))
-    } else if textContent != "" {
-        bodyHTML = fmt.Sprintf(`<pre class="text-content">%s</pre>`, escapeHTML(textContent))
-    } else {
-        bodyHTML = `<div class="no-content">无邮件正文</div>`
-    }
-    
-    timeStr := msg.CreatedAt.Format("2006-01-02 15:04:05")
-    
-    return fmt.Sprintf(messageDetailTemplate, 
-        escapeHTML(msg.Subject),
-        local,
-        escapeHTML(msg.Subject),
-        escapeHTML(msg.From),
-        timeStr,
-        bodyHTML,
-        local,
-        local,
-        msg.ID,
-    )
+	// Parse email content from raw bytes
+	htmlContent, textContent, _ := parseEmailContent(msg.Raw)
+
+	// Choose which content to display
+	bodyHTML := ""
+	if htmlContent != "" {
+		bodyHTML = fmt.Sprintf(`<iframe id="html-frame" srcdoc="%s" sandbox="allow-same-origin"></iframe>`, escapeHTMLAttr(htmlContent))
+	} else if textContent != "" {
+		bodyHTML = fmt.Sprintf(`<pre class="text-content">%s</pre>`, escapeHTML(textContent))
+	} else {
+		bodyHTML = `<div class="no-content">无邮件正文</div>`
+	}
+
+	timeStr := msg.CreatedAt.Format("2006-01-02 15:04:05")
+
+	return fmt.Sprintf(messageDetailTemplate,
+		escapeHTML(msg.Subject),
+		local,
+		escapeHTML(msg.Subject),
+		escapeHTML(msg.From),
+		timeStr,
+		bodyHTML,
+		local,
+		local,
+		msg.ID,
+	)
 }
 
 func parseEmailContent(raw []byte) (htmlContent, textContent string, headers map[string]string) {
-    headers = make(map[string]string)
-    
-    if len(raw) == 0 {
-        return "", "", headers
-    }
-    
-    // Parse email using net/mail
-    m, err := stdmail.ReadMessage(bytes.NewReader(raw))
-    if err != nil {
-        textContent = string(raw)
-        return "", textContent, headers
-    }
-    
-    // Extract and decode headers using mime.WordDecoder
-    dec := new(mime.WordDecoder)
-    for k := range m.Header {
-        rawValue := m.Header.Get(k)
-        // Decode MIME encoded-words (=?charset?encoding?text?=)
-        if decoded, err := dec.DecodeHeader(rawValue); err == nil {
-            headers[k] = decoded
-        } else {
-            headers[k] = rawValue
-        }
-    }
-    
-    // Read body
-    body, err := io.ReadAll(m.Body)
-    if err != nil {
-        return "", "", headers
-    }
-    
-    // Check Content-Transfer-Encoding and decode body
-    contentTransferEncoding := strings.ToLower(m.Header.Get("Content-Transfer-Encoding"))
-    decodedBody := body
-    
-    switch contentTransferEncoding {
-    case "base64":
-        if decoded, err := base64.StdEncoding.DecodeString(string(body)); err == nil {
-            decodedBody = decoded
-        }
-    case "quoted-printable":
-        // Quoted-printable decoding
-        decodedBody = decodeQuotedPrintable(body)
-    }
-    
-    bodyStr := string(decodedBody)
-    
-    // Check if it's multipart
-    contentType := m.Header.Get("Content-Type")
-    if strings.Contains(contentType, "multipart") {
-        // Simple multipart parsing with encoding support
-        htmlContent, textContent = parseMultipart(bodyStr, contentType)
-    } else if strings.Contains(contentType, "text/html") {
-        htmlContent = bodyStr
-    } else {
-        textContent = bodyStr
-    }
-    
-    return htmlContent, textContent, headers
+	headers = make(map[string]string)
+
+	if len(raw) == 0 {
+		return "", "", headers
+	}
+
+	// Parse email using net/mail
+	m, err := stdmail.ReadMessage(bytes.NewReader(raw))
+	if err != nil {
+		textContent = string(raw)
+		return "", textContent, headers
+	}
+
+	// Extract and decode headers using mime.WordDecoder
+	dec := new(mime.WordDecoder)
+	for k := range m.Header {
+		rawValue := m.Header.Get(k)
+		// Decode MIME encoded-words (=?charset?encoding?text?=)
+		if decoded, err := dec.DecodeHeader(rawValue); err == nil {
+			headers[k] = decoded
+		} else {
+			headers[k] = rawValue
+		}
+	}
+
+	// Read body
+	body, err := io.ReadAll(m.Body)
+	if err != nil {
+		return "", "", headers
+	}
+
+	// Check Content-Transfer-Encoding and decode body
+	contentTransferEncoding := strings.ToLower(m.Header.Get("Content-Transfer-Encoding"))
+	decodedBody := body
+
+	switch contentTransferEncoding {
+	case "base64":
+		if decoded, err := base64.StdEncoding.DecodeString(string(body)); err == nil {
+			decodedBody = decoded
+		}
+	case "quoted-printable":
+		// Quoted-printable decoding
+		decodedBody = decodeQuotedPrintable(body)
+	}
+
+	bodyStr := string(decodedBody)
+
+	// Check if it's multipart
+	contentType := m.Header.Get("Content-Type")
+	if strings.Contains(contentType, "multipart") {
+		// Simple multipart parsing with encoding support
+		htmlContent, textContent = parseMultipart(bodyStr, contentType)
+	} else if strings.Contains(contentType, "text/html") {
+		htmlContent = bodyStr
+	} else {
+		textContent = bodyStr
+	}
+
+	return htmlContent, textContent, headers
 }
 
 func parseMultipart(body, contentType string) (html, text string) {
-    // Extract boundary
-    boundary := ""
-    if idx := strings.Index(contentType, "boundary="); idx >= 0 {
-        boundary = contentType[idx+9:]
-        boundary = strings.Trim(boundary, `"`)
-        if idx2 := strings.IndexAny(boundary, "; \t\r\n"); idx2 >= 0 {
-            boundary = boundary[:idx2]
-        }
-    }
-    
-    if boundary == "" {
-        return "", body
-    }
-    
-    parts := strings.Split(body, "--"+boundary)
-    for _, part := range parts {
-        part = strings.TrimSpace(part)
-        if part == "" || part == "--" {
-            continue
-        }
-        
-        // Split headers and body
-        splitIdx := strings.Index(part, "\r\n\r\n")
-        if splitIdx < 0 {
-            splitIdx = strings.Index(part, "\n\n")
-            if splitIdx < 0 {
-                continue
-            }
-            splitIdx += 2
-        } else {
-            splitIdx += 4
-        }
-        
-        headers := part[:splitIdx]
-        content := part[splitIdx:]
-        
-        // Decode content based on Content-Transfer-Encoding
-        if strings.Contains(headers, "base64") {
-            content = strings.ReplaceAll(content, "\r\n", "")
-            content = strings.ReplaceAll(content, "\n", "")
-            if decoded, err := base64.StdEncoding.DecodeString(content); err == nil {
-                content = string(decoded)
-            }
-        } else if strings.Contains(headers, "quoted-printable") {
-            content = string(decodeQuotedPrintable([]byte(content)))
-        }
-        
-        if strings.Contains(headers, "text/html") {
-            html = content
-        } else if strings.Contains(headers, "text/plain") && text == "" {
-            text = content
-        }
-    }
-    
-    return html, text
+	// Extract boundary
+	boundary := ""
+	if idx := strings.Index(contentType, "boundary="); idx >= 0 {
+		boundary = contentType[idx+9:]
+		boundary = strings.Trim(boundary, `"`)
+		if idx2 := strings.IndexAny(boundary, "; \t\r\n"); idx2 >= 0 {
+			boundary = boundary[:idx2]
+		}
+	}
+
+	if boundary == "" {
+		return "", body
+	}
+
+	parts := strings.Split(body, "--"+boundary)
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" || part == "--" {
+			continue
+		}
+
+		// Split headers and body
+		splitIdx := strings.Index(part, "\r\n\r\n")
+		if splitIdx < 0 {
+			splitIdx = strings.Index(part, "\n\n")
+			if splitIdx < 0 {
+				continue
+			}
+			splitIdx += 2
+		} else {
+			splitIdx += 4
+		}
+
+		headers := part[:splitIdx]
+		content := part[splitIdx:]
+
+		// Decode content based on Content-Transfer-Encoding
+		if strings.Contains(headers, "base64") {
+			content = strings.ReplaceAll(content, "\r\n", "")
+			content = strings.ReplaceAll(content, "\n", "")
+			if decoded, err := base64.StdEncoding.DecodeString(content); err == nil {
+				content = string(decoded)
+			}
+		} else if strings.Contains(headers, "quoted-printable") {
+			content = string(decodeQuotedPrintable([]byte(content)))
+		}
+
+		if strings.Contains(headers, "text/html") {
+			html = content
+		} else if strings.Contains(headers, "text/plain") && text == "" {
+			text = content
+		}
+	}
+
+	return html, text
 }
 
 // decodeQuotedPrintable decodes quoted-printable encoded text
 func decodeQuotedPrintable(data []byte) []byte {
-    var result bytes.Buffer
-    i := 0
-    for i < len(data) {
-        if data[i] == '=' {
-            if i+2 < len(data) {
-                // Soft line break
-                if data[i+1] == '\r' && data[i+2] == '\n' {
-                    i += 3
-                    continue
-                }
-                if data[i+1] == '\n' {
-                    i += 2
-                    continue
-                }
-                // Hex encoding
-                if i+2 < len(data) {
-                    hex := string(data[i+1:i+3])
-                    var b byte
-                    if _, err := fmt.Sscanf(hex, "%02X", &b); err == nil {
-                        result.WriteByte(b)
-                        i += 3
-                        continue
-                    }
-                }
-            }
-            // Invalid encoding, keep the =
-            result.WriteByte(data[i])
-            i++
-        } else {
-            result.WriteByte(data[i])
-            i++
-        }
-    }
-    return result.Bytes()
+	var result bytes.Buffer
+	i := 0
+	for i < len(data) {
+		if data[i] == '=' {
+			if i+2 < len(data) {
+				// Soft line break
+				if data[i+1] == '\r' && data[i+2] == '\n' {
+					i += 3
+					continue
+				}
+				if data[i+1] == '\n' {
+					i += 2
+					continue
+				}
+				// Hex encoding
+				if i+2 < len(data) {
+					hex := string(data[i+1 : i+3])
+					var b byte
+					if _, err := fmt.Sscanf(hex, "%02X", &b); err == nil {
+						result.WriteByte(b)
+						i += 3
+						continue
+					}
+				}
+			}
+			// Invalid encoding, keep the =
+			result.WriteByte(data[i])
+			i++
+		} else {
+			result.WriteByte(data[i])
+			i++
+		}
+	}
+	return result.Bytes()
 }
 
 func escapeHTML(s string) string {
-    s = strings.ReplaceAll(s, "&", "&amp;")
-    s = strings.ReplaceAll(s, "<", "&lt;")
-    s = strings.ReplaceAll(s, ">", "&gt;")
-    s = strings.ReplaceAll(s, "\"", "&quot;")
-    s = strings.ReplaceAll(s, "'", "&#39;")
-    return s
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, "\"", "&quot;")
+	s = strings.ReplaceAll(s, "'", "&#39;")
+	return s
 }
 
 func escapeHTMLAttr(s string) string {
-    s = escapeHTML(s)
-    s = strings.ReplaceAll(s, "\n", "&#10;")
-    s = strings.ReplaceAll(s, "\r", "&#13;")
-    return s
+	s = escapeHTML(s)
+	s = strings.ReplaceAll(s, "\n", "&#10;")
+	s = strings.ReplaceAll(s, "\r", "&#13;")
+	return s
 }
 
 const indexHTML = `<!doctype html>

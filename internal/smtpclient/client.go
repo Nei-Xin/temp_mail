@@ -55,12 +55,12 @@ func (c *Client) Send(msg Message) error {
 		if err := c.sendToDomain(domain, msg.From, recipients, body); err != nil {
 			// 简化错误提示
 			errMsg := strings.ToLower(err.Error())
-			
+
 			// 检测常见的拒绝原因
-			if strings.Contains(errMsg, "not authorized") || 
-			   strings.Contains(errMsg, "blocked") || 
-			   strings.Contains(errMsg, "spamhaus") ||
-			   strings.Contains(errMsg, "relay") {
+			if strings.Contains(errMsg, "not authorized") ||
+				strings.Contains(errMsg, "blocked") ||
+				strings.Contains(errMsg, "spamhaus") ||
+				strings.Contains(errMsg, "relay") {
 				// 国际邮箱拒绝
 				if domain == "gmail.com" || domain == "googlemail.com" {
 					lastErr = fmt.Errorf("Gmail 拒绝，建议用 QQ/163")
