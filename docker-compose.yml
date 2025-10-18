@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  temp-mail:
+    # 使用 Docker Hub 镜像（推荐）
+    image: neixin/temp-mail:v2.0
+    
+    # 或本地构建
+    # build: .
+    
+    container_name: temp-mail
+    restart: unless-stopped
+    
+    ports:
+      - "8080:8080"   # HTTP Web 界面
+      - "25:25"       # SMTP 接收端口
+    
+    environment:
+      - HTTP_ADDR=:8080
+      - SMTP_ADDR=:25
+      - DOMAIN=${DOMAIN:-101.44.160.108}  # 从 .env 读取，默认使用 IP
+      - MESSAGE_TTL=${MESSAGE_TTL:-3600}  # 邮件保留时间（秒），默认 1 小时
+      - TZ=${TZ:-Asia/Shanghai}
+    
+    env_file:
+      - .env
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  default:
+    driver: bridge
