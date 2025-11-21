@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"math/big"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -48,9 +50,57 @@ func NewMemoryStore(ttl time.Duration) *MemoryStore {
 	return ms
 }
 
+// uuidToBase36 converts a UUID to a base36 (lowercase) string with 8 characters
+func uuidToBase36() string {
+	id := uuid.New()
+
+	// Convert UUID bytes to big.Int
+	var num big.Int
+	num.SetBytes(id[:])
+
+	// Base36 alphabet (0-9, a-z)
+	const base36Chars = "0123456789abcdefghijklmnopqrstuvwxyz"
+	base := big.NewInt(36)
+
+	// Encode to base36
+	var encoded strings.Builder
+	if num.Sign() == 0 {
+		return "00000000"
+	}
+
+	var digits []byte
+	temp := new(big.Int).Set(&num)
+	zero := big.NewInt(0)
+	mod := new(big.Int)
+
+	for temp.Cmp(zero) > 0 {
+		temp.DivMod(temp, base, mod)
+		digits = append(digits, base36Chars[mod.Int64()])
+	}
+
+	// Reverse the digits
+	for i := len(digits) - 1; i >= 0; i-- {
+		encoded.WriteByte(digits[i])
+	}
+
+	result := encoded.String()
+
+	// Truncate to 8 characters
+	if len(result) > 8 {
+		return result[:8]
+	}
+
+	// Pad with leading zeros if needed
+	for len(result) < 8 {
+		result = "0" + result
+	}
+
+	return result
+}
+
 func (m *MemoryStore) CreateAddress(local string) string {
 	if local == "" {
-		local = uuid.NewString()
+		local = uuidToBase36()
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()

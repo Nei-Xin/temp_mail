@@ -451,7 +451,7 @@ const indexHTML = `<!doctype html>
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #e0e7ff 0%%, #f3f4f6 100%%);
       min-height: 100vh;
       padding: 1rem 1rem;
       color: #2d3748;
@@ -471,34 +471,40 @@ const indexHTML = `<!doctype html>
     .header {
       text-align: center;
       margin-bottom: 1rem;
-      color: white;
+      color: #1a202c;
     }
     
     .header h1 {
       font-size: 1.5rem;
       font-weight: 700;
       margin-bottom: 0.2rem;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      color: #1a202c;
+      letter-spacing: -0.02em;
     }
     
     .header p {
       font-size: 0.8rem;
-      opacity: 0.95;
+      opacity: 0.7;
       font-weight: 400;
+      color: #4a5568;
     }
     
     .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), 
+                  0 1px 3px rgba(255, 255, 255, 0.5) inset;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       padding: 1rem;
       margin-bottom: 1rem;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      transition: all 0.3s ease;
     }
     
     .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2), 
+                  0 2px 4px rgba(255, 255, 255, 0.6) inset;
     }
     
     .create-section {
@@ -1342,7 +1348,7 @@ const messageDetailTemplate = `<!doctype html>
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+      background: linear-gradient(135deg, #e0e7ff 0%%, #f3f4f6 100%%);
       min-height: 100vh;
       padding: 1rem 1rem;
       color: #2d3748;
@@ -1363,26 +1369,32 @@ const messageDetailTemplate = `<!doctype html>
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      color: white;
+      color: #4a5568;
       text-decoration: none;
       font-weight: 600;
       margin-bottom: 0.75rem;
       padding: 0.4rem 0.85rem;
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: 8px;
       transition: all 0.3s ease;
       font-size: 0.8rem;
     }
     
     .back-btn:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateX(-4px);
+      background: rgba(255, 255, 255, 0.9);
+      transform: translateX(-3px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px) saturate(180%%);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), 
+                  0 1px 3px rgba(255, 255, 255, 0.5) inset;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       overflow: hidden;
     }
     
@@ -1477,13 +1489,14 @@ const messageDetailTemplate = `<!doctype html>
     }
     
     .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+      background: linear-gradient(135deg, #f093fb 0%%, #f5576c 100%%);
       color: white;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
     }
     
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5);
     }
     
     .btn-secondary {
