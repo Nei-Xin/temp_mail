@@ -18,6 +18,10 @@ import (
 
 func NewMux(store storage.Store, domain string, smtpClient *smtpclient.Client) http.Handler {
 	mux := http.NewServeMux()
+
+	// Static files
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
 	// API
 	mux.HandleFunc("/api/address", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -254,8 +258,8 @@ func renderMessageDetailPage(msg storage.Message, local, domain string) string {
 		timeStr,
 		bodyHTML,
 		local,
-		local,
 		msg.ID,
+		local,
 	)
 }
 
@@ -437,452 +441,344 @@ const indexHTML = `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>临时邮箱 - Temp Mail</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>AlienMail | Interstellar Uplink</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      /* 异形飞船配色：生物荧光绿 + 深空黑 */
+      --alien-green: #39ff14;
+      --alien-dim: rgba(57, 255, 20, 0.2);
+      --alien-dark: #051005;
+      --hud-border: rgba(57, 255, 20, 0.4);
+      --text-main: #e0f0e0;
+      --text-muted: #608060;
+      --warning: #ff3333;
+      --card-bg: rgba(5, 15, 5, 0.85);
     }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--alien-dim); border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--alien-green); }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #e0e7ff 0%%, #f3f4f6 100%%);
+      font-family: 'Share Tech Mono', monospace; /* 科技感字体 */
+      background-color: #000;
+      
+      /* 飞船舷窗效果：深空背景 */
+      background-image: 
+        radial-gradient(circle at center, #0a1a0a 0%, #000 100%);
+      
+      height: 100vh; 
+      overflow: hidden; /* 初始锁定，营造仪表盘感 */
+      
+      padding: 1rem;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      transition: height 0.3s ease;
+    }
+    
+    /* 混合滚动模式 */
+    body.scroll-mode {
+      height: auto;
       min-height: 100vh;
-      padding: 1rem 1rem;
-      color: #2d3748;
+      overflow-y: auto;
+    }
+
+    /* 星空粒子动画 */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 50px 160px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0));
+      background-size: 200px 200px;
+      animation: warpSpeed 20s linear infinite;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: -1;
     }
     
+    /* 扫描线效果 */
+    body::after {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 255, 0, 0.05) 50%);
+      background-size: 100% 4px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    @keyframes warpSpeed {
+      from { transform: translateY(0); }
+      to { transform: translateY(200px); }
+    }
+
     .container {
-      max-width: 700px;
+      max-width: 800px;
+      width: 100%;
       margin: 0 auto;
-      animation: fadeIn 0.6s ease-out;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      position: relative;
+      z-index: 3;
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
+    .container.scroll-mode { height: auto; }
+
     .header {
       text-align: center;
-      margin-bottom: 1rem;
-      color: #1a202c;
+      flex-shrink: 0;
+      text-transform: uppercase;
     }
-    
     .header h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.2rem;
-      color: #1a202c;
-      letter-spacing: -0.02em;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--alien-green);
+      text-shadow: 0 0 15px var(--alien-green);
+      letter-spacing: 2px;
+      margin-bottom: 0.5rem;
     }
-    
     .header p {
+      color: var(--text-muted);
       font-size: 0.8rem;
-      opacity: 0.7;
-      font-weight: 400;
-      color: #4a5568;
+      letter-spacing: 4px;
     }
     
+    /* 异形飞船风格卡片 */
     .card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(20px) saturate(180%);
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), 
-                  0 1px 3px rgba(255, 255, 255, 0.5) inset;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      padding: 1rem;
-      margin-bottom: 1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2), 
-                  0 2px 4px rgba(255, 255, 255, 0.6) inset;
-    }
-    
-    .create-section {
-      display: flex;
-      gap: 0.75rem;
-      align-items: stretch;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-    }
-    
-    .input-wrapper {
-      flex: 1;
-      min-width: 180px;
+      background: var(--card-bg);
+      /* 全息玻璃质感 */
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--hud-border);
+      box-shadow: 0 0 20px rgba(57, 255, 20, 0.05), inset 0 0 30px rgba(57, 255, 20, 0.02);
+      clip-path: polygon(
+        0 0, 
+        100% 0, 
+        100% calc(100% - 20px), 
+        calc(100% - 20px) 100%, 
+        0 100%
+      ); /* 切角设计 */
       position: relative;
     }
     
-    .input-wrapper input {
-      width: 100%;
-      padding: 0.6rem 0.85rem;
-      font-size: 0.85rem;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
+    /* 装饰性角落 */
+    .card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 20px; height: 20px;
+      border-bottom: 2px solid var(--alien-green);
+      border-right: 2px solid var(--alien-green);
+      clip-path: polygon(0 100%, 100% 0, 100% 100%);
+    }
+
+    .control-card {
+      flex-shrink: 0;
+      padding: 1.5rem;
+    }
+
+    .content-card {
+      flex: 1; 
+      min-height: 0; 
+      display: flex;
+      flex-direction: column;
+      padding: 0;
       transition: all 0.3s ease;
-      font-family: inherit;
-      background: #f8fafc;
     }
     
-    .input-wrapper input:focus {
-      outline: none;
-      border-color: #667eea;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    .content-card.auto-height {
+      flex: none;
+      height: auto;
+      min-height: 500px;
+      overflow: visible;
+    }
+
+    .card-header-strip {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--hud-border);
+      background: rgba(57, 255, 20, 0.05);
+      flex-shrink: 0;
     }
     
+    /* 输入框：终端风格 */
+    .create-section { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
+    .input-wrapper { flex: 1; position: relative; }
+    
+    input, textarea {
+      width: 100%; padding: 0.8rem 1rem; font-size: 1rem;
+      background: rgba(0, 20, 0, 0.6); 
+      border: 1px solid var(--text-muted);
+      color: var(--alien-green); 
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.3s ease;
+      text-transform: lowercase;
+    }
+    input:focus, textarea:focus {
+      outline: none; border-color: var(--alien-green);
+      box-shadow: 0 0 15px var(--alien-dim);
+      background: rgba(0, 30, 0, 0.8);
+    }
+    input::placeholder, textarea::placeholder { color: rgba(57, 255, 20, 0.3); text-transform: none; }
+    
+    /* 按钮：全息按钮 */
     .btn {
-      padding: 0.6rem 1.2rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-family: inherit;
-      white-space: nowrap;
+      padding: 0.8rem 1.5rem; font-size: 0.9rem; font-weight: 700;
+      border: 1px solid var(--alien-green);
+      background: rgba(57, 255, 20, 0.1);
+      color: var(--alien-green);
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'Orbitron', sans-serif; 
+      text-transform: uppercase; letter-spacing: 1px;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-    }
-    
-    .btn-primary:active {
-      transform: translateY(0);
+    .btn:hover {
+      background: var(--alien-green);
+      color: black;
+      box-shadow: 0 0 20px var(--alien-green);
     }
     
     .address-display {
-      background: linear-gradient(135deg, #f6f8fb 0%, #e9ecef 100%);
-      padding: 0.75rem;
-      border-radius: 8px;
-      border: 2px dashed #cbd5e0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      flex-wrap: wrap;
+      background: rgba(0, 20, 0, 0.4); padding: 0.8rem 1rem;
+      border: 1px dashed var(--text-muted);
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     }
-    
-    .address-label {
-      font-size: 0.65rem;
-      color: #718096;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.2rem;
-    }
-    
-    .address-value {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #2d3748;
-      font-family: 'Courier New', monospace;
-      background: white;
-      padding: 0.35rem 0.65rem;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
-      flex: 1;
-      min-width: 200px;
-      word-break: break-all;
-    }
-    
-    .address-value.empty {
-      color: #a0aec0;
-      font-style: italic;
-    }
+    .address-info { display: flex; flex-direction: column; overflow: hidden; }
+    .address-label { font-size: 0.6rem; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 0.2rem; }
+    .address-value { font-size: 1.1rem; font-weight: 600; color: var(--alien-green); font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 5px var(--alien-green); }
     
     .btn-copy {
-      background: #48bb78;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 0.85rem;
+      font-size: 0.7rem; padding: 0.5rem 1rem;
     }
-    
-    .btn-copy:hover {
-      background: #38a169;
-      transform: scale(1.05);
-    }
-    
-    .messages-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-    }
-    
-    .messages-header h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #2d3748;
-    }
-    
-    .badge {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 0.25rem 0.6rem;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 600;
-    }
-    
-    .tabs {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-      border-bottom: 2px solid #e2e8f0;
-    }
-    
+
+    .tabs { display: flex; gap: 2px; }
     .tab {
-      padding: 0.75rem 1.5rem;
-      background: none;
-      border: none;
-      border-bottom: 3px solid transparent;
-      color: #718096;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      bottom: -2px;
+      padding: 0.6rem 1.5rem; background: rgba(0,0,0,0.3); border: 1px solid transparent; border-bottom: none;
+      color: var(--text-muted); font-weight: 600; font-size: 0.9rem;
+      cursor: pointer; transition: all 0.3s; font-family: 'Orbitron', sans-serif;
+    }
+    .tab:hover { color: var(--alien-green); }
+    .tab.active { 
+      color: var(--alien-green); 
+      background: rgba(57, 255, 20, 0.05);
+      border-color: var(--hud-border);
+      border-bottom: 1px solid var(--card-bg); /* Merge with content */
+      margin-bottom: -1px; z-index: 10;
+      box-shadow: 0 -5px 10px rgba(57, 255, 20, 0.05);
     }
     
-    .tab:hover {
-      color: #667eea;
-      background: rgba(102, 126, 234, 0.05);
-    }
-    
-    .tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
-    }
-    
-    .tab-content {
-      display: none;
-    }
-    
-    .tab-content.active {
-      display: block;
-      animation: fadeIn 0.3s ease;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .messages-container {
-      background: #f8fafc;
-      border-radius: 12px;
+    .tab-content { 
+      display: none; 
+      flex: 1; flex-direction: column; 
       overflow: hidden;
-      border: 1px solid #e2e8f0;
     }
+    .tab-content.active { display: flex; }
+    
+    /* 收件箱：内部滚动 */
+    .scroll-area-internal {
+      flex: 1;
+      overflow-y: auto; 
+      padding: 1.5rem;
+    }
+    
+    /* 发送页：自然高度 */
+    .scroll-area-natural {
+      height: auto;
+      padding: 1.5rem;
+    }
+
+    .messages-container { display: flex; flex-direction: column; gap: 0.5rem; }
     
     .message-item {
-      background: white;
-      padding: 0.75rem;
-      border-bottom: 1px solid #e2e8f0;
-      transition: all 0.3s ease;
-      cursor: pointer;
+      background: rgba(0, 20, 0, 0.3); padding: 1rem;
+      border-left: 2px solid var(--text-muted);
+      transition: all 0.2s ease; cursor: pointer;
+    }
+    .message-item:hover { 
+      background: rgba(57, 255, 20, 0.05); 
+      border-left-color: var(--alien-green);
+      box-shadow: inset 5px 0 10px rgba(57, 255, 20, 0.05);
     }
     
-    .message-item.new-item {
-      animation: slideIn 0.4s ease-out;
-    }
+    .message-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
+    .message-from { font-weight: 700; color: #fff; font-size: 0.95rem; letter-spacing: 0.5px; }
+    .message-time { font-size: 0.7rem; color: var(--text-muted); }
+    .message-subject { color: var(--alien-green); font-size: 0.9rem; }
     
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-20px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
+    .compose-form { display: flex; flex-direction: column; gap: 1.2rem; }
+    .compose-editor { min-height: 350px; resize: vertical; border-left: 3px solid var(--alien-dim); }
     
-    .message-item:last-child {
-      border-bottom: none;
-    }
-    
-    .message-item:hover {
-      background: #f7fafc;
-      transform: translateX(4px);
-    }
-    
-    .message-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 0.4rem;
-      gap: 0.6rem;
-    }
-    
-    .message-from {
-      font-weight: 600;
-      color: #2d3748;
-      font-size: 0.8rem;
-    }
-    
-    .message-time {
-      font-size: 0.7rem;
-      color: #718096;
-      white-space: nowrap;
-    }
-    
-    .message-subject {
-      font-weight: 600;
-      color: #4a5568;
-      margin-bottom: 0.3rem;
-      font-size: 0.85rem;
-    }
-    
-    .message-snippet {
-      color: #718096;
-      font-size: 0.75rem;
-      line-height: 1.4;
-      margin-bottom: 0.5rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    
-    .message-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    .btn-small {
-      padding: 0.35rem 0.75rem;
-      font-size: 0.8rem;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-    
-    .btn-outline {
-      border: 1px solid #667eea;
-      color: #667eea;
-      background: white;
-    }
-    
-    .btn-outline:hover {
-      background: #667eea;
-      color: white;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 2.5rem 1.5rem;
-      color: #718096;
-    }
-    
-    .empty-state-icon {
-      font-size: 3rem;
-      margin-bottom: 0.75rem;
-      opacity: 0.5;
-    }
-    
-    .empty-state h3 {
-      font-size: 1.1rem;
-      margin-bottom: 0.4rem;
-      color: #4a5568;
-    }
-    
-    .empty-state p {
-      font-size: 0.9rem;
-    }
-    
-    .loading {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #e2e8f0;
-      border-top-color: #667eea;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
+    .empty-state { text-align: center; margin-top: 4rem; color: var(--text-muted); }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+
     .toast {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: white;
-      padding: 1rem 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.3s ease;
-      z-index: 1000;
-      border-left: 4px solid #48bb78;
+      position: fixed; bottom: 2rem; right: 2rem; 
+      background: #000; border: 1px solid var(--alien-green);
+      color: var(--alien-green); padding: 1rem 2rem;
+      box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+      transform: translateY(100px); opacity: 0; transition: all 0.3s;
+      z-index: 1000; font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
     }
+    .toast.error { border-color: var(--warning); color: var(--warning); box-shadow: 0 0 30px rgba(255, 51, 51, 0.2); }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .badge { background: var(--alien-green); color: black; padding: 2px 6px; font-weight: bold; border-radius: 2px; font-size: 0.7rem; }
     
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
+    /* 呼吸灯动画 */
+    .loading { 
+      display: inline-block; width: 14px; height: 14px; 
+      border: 2px solid var(--alien-green); border-radius: 50%; 
+      animation: pulse 1s infinite;
     }
-    
-    @media (max-width: 768px) {
-      .header h1 {
-        font-size: 2rem;
-      }
-      
-      .card {
-        padding: 1.5rem;
-      }
-      
-      .create-section {
-        flex-direction: column;
-      }
-      
-      .btn {
-        width: 100%;
-      }
-      
-      .address-display {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .message-header {
-        flex-direction: column;
-      }
+    @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 0; } }
+
+    #ttl-info { margin-top: 1rem; color: var(--warning); font-size: 0.8rem; display: none; text-align: center; border: 1px solid var(--warning); padding: 0.5rem; background: rgba(255, 51, 51, 0.05); }
+
+    /* 移动端/小屏适配 */
+    @media (max-height: 700px), (max-width: 600px) {
+      body { height: auto; overflow-y: auto; }
+      .container { height: auto; padding: 0.5rem; }
+      .card { min-height: 500px; }
+      .address-display { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+      .address-value { font-size: 0.85rem; word-break: break-all; }
+      .btn-copy { width: 100%; }
+      .create-section { flex-direction: column; }
+      .input-wrapper { min-width: 100%; }
     }
   </style>
   <script>
     let currentLocal = '';
+    let currentDomain = '';
     let pollInterval = null;
     let messageTTL = 30;
     let lastMessageIds = [];
     
     async function createAddr() {
-      const desired = document.getElementById('local').value.trim();
-      const btn = event.target;
+      const input = document.getElementById('local');
+      const desired = input.value.trim();
+      
+      // UI Feedback
+      const btn = document.querySelector('.create-section .btn');
+      const originalBtnText = btn.textContent;
       btn.disabled = true;
       btn.innerHTML = '<span class="loading"></span>';
       
@@ -890,283 +786,134 @@ const indexHTML = `<!doctype html>
         const r = await fetch('/api/address?local=' + encodeURIComponent(desired), {method: 'POST'});
         const j = await r.json();
         currentLocal = j.local;
+        currentDomain = j.address.split('@')[1];
         messageTTL = j.ttl || 30;
-        
-        const addrEl = document.getElementById('addr');
-        addrEl.textContent = j.address;
-        addrEl.classList.remove('empty');
-        
-        document.getElementById('copy-section').style.display = 'flex';
+        document.getElementById('addr').textContent = j.address;
+        document.getElementById('copy-section').style.display = 'block';
         document.getElementById('ttl-info').style.display = 'block';
         document.getElementById('ttl-minutes').textContent = messageTTL;
-        
-        // 设置发件人地址
-        document.getElementById('send-from').value = j.address;
-        
+        const sendFromInput = document.getElementById('send-from');
+        if (sendFromInput) {
+          sendFromInput.value = j.address;
+          sendFromInput.style.opacity = '1';
+          sendFromInput.placeholder = '';
+          console.log('Set send-from to:', j.address, 'Element:', sendFromInput);
+        } else {
+          console.error('send-from element not found!');
+        }
         loadMsgs();
         startPolling();
-        showToast('邮箱地址已创建！邮件保留 ' + messageTTL + ' 分钟');
-      } catch (e) {
-        showToast('创建失败，请重试', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '创建邮箱';
-      }
+        showToast('>>> LINK ESTABLISHED');
+      } catch (e) { 
+        console.error('Create address error:', e);
+        showToast('CONNECTION ERROR', 'error'); 
+      } 
+      finally { btn.disabled = false; btn.textContent = originalBtnText; }
     }
     
     async function loadMsgs() {
       if (!currentLocal) return;
-      
       try {
         const r = await fetch('/api/messages/' + currentLocal);
         const msgs = await r.json() || [];
-        
-        const container = document.getElementById('messages-container');
-        const badge = document.getElementById('inbox-badge');
-        badge.textContent = msgs.length;
-        
+        document.getElementById('inbox-badge').textContent = msgs.length;
         if (msgs.length === 0) {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><h3>收件箱为空</h3><p>等待新邮件到达...</p></div>';
+          document.getElementById('messages-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">👾</div><h3>SILENCE</h3><p>Scanning void for data...</p></div>';
           lastMessageIds = [];
           return;
         }
-        
-        // 检查邮件列表是否有变化（ID 和数量）
         const currentIds = msgs.map(m => m.id);
-        const hasChanged = currentIds.length !== lastMessageIds.length || 
-                          currentIds.some((id, i) => id !== lastMessageIds[i]);
-        
-        if (hasChanged) {
-          // 只有在邮件列表真正变化时才完全重新渲染
+        if (currentIds.length !== lastMessageIds.length || currentIds.some((id, i) => id !== lastMessageIds[i])) {
           renderMessages(msgs);
           lastMessageIds = currentIds;
-        } else {
-          // 如果邮件列表没变，只更新倒计时
-          updateTimers(msgs);
-        }
-      } catch (e) {
-        console.error('加载消息失败:', e);
-      }
+        } else { updateTimers(msgs); }
+      } catch (e) { console.error(e); }
     }
     
     function renderMessages(msgs) {
       const container = document.getElementById('messages-container');
-      const existingIds = Array.from(container.querySelectorAll('.message-item')).map(el => el.getAttribute('data-msg-id'));
       container.innerHTML = '';
-      
       for (const m of msgs) {
         const div = document.createElement('div');
-        const isNew = !existingIds.includes(m.id);
-        div.className = isNew ? 'message-item new-item' : 'message-item';
+        div.className = 'message-item';
         div.setAttribute('data-msg-id', m.id);
-        
-        const time = new Date(m.createdAt);
-        const expiresAt = new Date(m.expiresAt);
+        div.onclick = function() { window.location.href = '/view/' + currentLocal + '/' + m.id; };
         const now = new Date();
-        const minutesLeft = Math.max(0, Math.floor((expiresAt - now) / 60000));
-        
-        const timeStr = time.toLocaleString('zh-CN', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        
-        let expiryBadge = '';
-        if (minutesLeft > 0) {
-          const expiryColor = minutesLeft <= 5 ? '#e53e3e' : (minutesLeft <= 15 ? '#dd6b20' : '#48bb78');
-          expiryBadge = '<span class="expiry-timer" style="font-size:0.8rem;color:' + expiryColor + ';margin-left:0.5rem;" data-expires="' + m.expiresAt + '">⏱ ' + minutesLeft + '分钟后过期</span>';
-        }
-        
+        const minutesLeft = Math.max(0, Math.floor((new Date(m.expiresAt) - now) / 60000));
         div.innerHTML = 
           '<div class="message-header">' +
-            '<div class="message-from">' + escapeHtml(m.from || '未知发件人') + '</div>' +
-            '<div class="message-time">' + timeStr + expiryBadge + '</div>' +
+            '<div class="message-from">' + escapeHtml(m.from || 'UNKNOWN ENTITY') + '</div>' +
+            '<div class="message-time">' + new Date(m.createdAt).toLocaleTimeString() + '</div>' +
           '</div>' +
-          '<div class="message-subject">' + escapeHtml(m.subject || '(无主题)') + '</div>' +
-          '<div class="message-snippet">' + escapeHtml(m.snippet || '') + '</div>' +
-          '<div class="message-actions">' +
-            '<a href="/view/' + currentLocal + '/' + m.id + '" class="btn-small btn-outline">查看详情</a>' +
-            '<a href="/api/messages/' + currentLocal + '/' + m.id + '?format=raw" download="message.eml" class="btn-small btn-outline" style="margin-left:0.5rem;">下载 EML</a>' +
-          '</div>';
-        
+          '<div class="message-subject">' + escapeHtml(m.subject || 'ENCRYPTED') + '</div>' +
+          '<div class="message-snippet">' + escapeHtml(m.snippet || '') + '</div>' + 
+          (minutesLeft > 0 ? '<div style="margin-top:0.5rem;font-size:0.65rem;color:#ff3333;text-align:right;" class="expiry-timer" data-expires="'+m.expiresAt+'">SELF-DESTRUCT IN ' + minutesLeft + ' MIN</div>' : '');
         container.appendChild(div);
       }
     }
-    
+
     function updateTimers(msgs) {
-      // 只更新倒计时，不重新渲染整个列表
-      const now = new Date();
-      
-      msgs.forEach(m => {
-        const msgEl = document.querySelector('[data-msg-id="' + m.id + '"]');
-        if (!msgEl) return;
-        
-        const timerEl = msgEl.querySelector('.expiry-timer');
-        if (!timerEl) return;
-        
-        const expiresAt = new Date(m.expiresAt);
-        const minutesLeft = Math.max(0, Math.floor((expiresAt - now) / 60000));
-        
-        if (minutesLeft > 0) {
-          const expiryColor = minutesLeft <= 5 ? '#e53e3e' : (minutesLeft <= 15 ? '#dd6b20' : '#48bb78');
-          timerEl.style.color = expiryColor;
-          timerEl.textContent = '⏱ ' + minutesLeft + '分钟后过期';
-        }
-      });
+        const now = new Date();
+        msgs.forEach(m => {
+            const el = document.querySelector('[data-msg-id="' + m.id + '"] .expiry-timer');
+            if (el) {
+                const left = Math.max(0, Math.floor((new Date(m.expiresAt) - now) / 60000));
+                el.textContent = 'SELF-DESTRUCT IN ' + left + ' MIN';
+            }
+        });
     }
     
     function copyAddress() {
       const addr = document.getElementById('addr').textContent;
-      if (addr === '(尚未创建)') return;
-      
-      // 尝试使用现代 Clipboard API
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(addr).then(() => {
-          showToast('地址已复制到剪贴板！');
-        }).catch((err) => {
-          console.error('Clipboard API failed:', err);
-          fallbackCopy(addr);
-        });
-      } else {
-        // 降级到传统方法
-        fallbackCopy(addr);
-      }
-    }
-    
-    function fallbackCopy(text) {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          showToast('地址已复制到剪贴板！');
-        } else {
-          showToast('复制失败，请手动复制', 'error');
-        }
-      } catch (err) {
-        console.error('Fallback copy failed:', err);
-        showToast('复制失败，请手动复制', 'error');
-      } finally {
-        document.body.removeChild(textarea);
-      }
+      navigator.clipboard.writeText(addr).then(() => showToast('>>> COPIED TO CLIPBOARD')).catch(() => showToast('COPY FAILED', 'error'));
     }
     
     function switchTab(tabName) {
-      // 更新选项卡按钮状态
-      const tabs = document.querySelectorAll('.tab');
-      tabs.forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
       event.target.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       
-      // 更新选项卡内容显示
-      document.getElementById('inbox-tab').classList.remove('active');
-      document.getElementById('compose-tab').classList.remove('active');
-      
+      const body = document.body;
+      const container = document.querySelector('.container');
+      const contentCard = document.querySelector('.content-card');
+
       if (tabName === 'inbox') {
         document.getElementById('inbox-tab').classList.add('active');
-      } else if (tabName === 'compose') {
+        body.classList.remove('scroll-mode');
+        container.classList.remove('scroll-mode');
+        contentCard.classList.remove('auto-height');
+      } else {
         document.getElementById('compose-tab').classList.add('active');
-        
-        // 切换到发送邮件时，检查是否已创建邮箱
-        if (!currentLocal) {
-          showToast('请先创建邮箱后再发送邮件', 'error');
-        }
+        body.classList.add('scroll-mode');
+        container.classList.add('scroll-mode');
+        contentCard.classList.add('auto-height');
+        if (!currentLocal) showToast('! ERROR: NO UPLINK DETECTED !', 'error');
       }
-    }
-    
-    function clearCompose() {
-      // 不清空发件人（自动填充的）
-      document.getElementById('send-to').value = '';
-      document.getElementById('send-subject').value = '';
-      document.getElementById('send-body').value = '';
-      document.getElementById('send-status').style.display = 'none';
     }
     
     async function sendEmail() {
-      // 检查是否已创建邮箱
-      if (!currentLocal) {
-        showToast('请先创建邮箱后再发送邮件', 'error');
-        return;
-      }
-      
-      const to = document.getElementById('send-to').value.trim();
-      const subject = document.getElementById('send-subject').value.trim();
-      const body = document.getElementById('send-body').value.trim();
-      
-      // 验证必填字段
-      if (!to) {
-        showToast('请输入收件人', 'error');
-        return;
-      }
-      
-      if (!subject) {
-        showToast('请输入邮件主题', 'error');
-        return;
-      }
-      
-      if (!body) {
-        showToast('请输入邮件内容', 'error');
-        return;
-      }
-      
-      // 解析收件人（支持逗号分隔的多个邮箱）
-      const toList = to.split(',').map(e => e.trim()).filter(e => e);
-      
-      const btn = document.getElementById('send-btn-text');
+      if (!currentLocal) { showToast('Initialize Uplink First', 'error'); return; }
+      const to = document.getElementById('send-to').value;
+      const subject = document.getElementById('send-subject').value;
+      const body = document.getElementById('send-body').value;
+      if (!to || !subject || !body) { showToast('Input Error: Missing Data', 'error'); return; }
+      const btn = document.getElementById('send-btn');
       const originalText = btn.textContent;
-      btn.textContent = '📤 发送中...';
-      
-      const statusEl = document.getElementById('send-status');
-      statusEl.style.display = 'none';
-      
+      btn.textContent = 'TRANSMITTING...';
       try {
-        const response = await fetch('/api/send', {
+        const res = await fetch('/api/send', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: currentLocal,  // 使用当前邮箱的本地部分
-            to: toList,
-            subject: subject,
-            body: body,
-          }),
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ from: currentLocal, to: to.split(','), subject, body }),
         });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-          statusEl.style.display = 'block';
-          statusEl.style.background = '#c6f6d5';
-          statusEl.style.borderLeft = '4px solid #48bb78';
-          statusEl.style.color = '#22543d';
-          statusEl.innerHTML = '<strong>✅ 发送成功！</strong><br>' + result.message;
-          
-          showToast('邮件已发送！');
-          
-          // 清空表单（不关闭）
-          setTimeout(() => {
-            clearCompose();
-          }, 2000);
-        } else {
-          throw new Error(result.error || '发送失败');
-        }
-      } catch (error) {
-        statusEl.style.display = 'block';
-        statusEl.style.background = '#fed7d7';
-        statusEl.style.borderLeft = '4px solid #e53e3e';
-        statusEl.style.color = '#742a2a';
-        statusEl.innerHTML = '<strong>❌ 发送失败</strong><br>' + error.message;
-        
-        showToast('发送失败: ' + error.message, 'error');
-      } finally {
-        btn.textContent = originalText;
-      }
+        const json = await res.json();
+        if (res.ok && json.success) {
+          showToast('>>> SENT SUCCESSFULLY');
+          document.getElementById('send-body').value = '';
+          document.getElementById('send-subject').value = '';
+        } else { throw new Error(json.error); }
+      } catch (e) { showToast('TRANSMISSION FAILED', 'error'); } 
+      finally { btn.textContent = originalText; }
     }
     
     function startPolling() {
@@ -1174,158 +921,124 @@ const indexHTML = `<!doctype html>
       pollInterval = setInterval(loadMsgs, 4000);
     }
     
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.className = 'toast show';
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
+    function showToast(msg, type='success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + type;
+      setTimeout(() => t.classList.remove('show'), 3000);
     }
     
     function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+      const div = document.createElement('div'); div.innerText = text; return div.innerHTML;
     }
-    
+
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('local').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') createAddr();
-      });
-      
-      // 从 URL 参数恢复邮箱地址
-      const params = new URLSearchParams(window.location.search);
-      const mailbox = params.get('mailbox');
-      if (mailbox) {
-        currentLocal = mailbox;
-        document.getElementById('local').value = mailbox;
-        
-        // 模拟创建邮箱（不调用API，直接设置界面）
-        fetch('/api/address?local=' + encodeURIComponent(mailbox), {method: 'POST'})
-          .then(r => r.json())
-          .then(j => {
-            messageTTL = j.ttl || 30;
-            const addrEl = document.getElementById('addr');
-            addrEl.textContent = j.address;
-            addrEl.classList.remove('empty');
-            document.getElementById('copy-section').style.display = 'flex';
-            document.getElementById('ttl-info').style.display = 'block';
-            document.getElementById('ttl-minutes').textContent = messageTTL;
-            document.getElementById('send-from').value = j.address;
-            loadMsgs();
-            startPolling();
-          })
-          .catch(e => console.error('恢复邮箱失败:', e));
-      }
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mailbox')) {
+            const mailbox = params.get('mailbox');
+            currentLocal = mailbox;
+            document.getElementById('local').value = mailbox;
+            // Try to determine domain - call API to get full address
+            fetch('/api/address?local=' + encodeURIComponent(mailbox), {method: 'POST'})
+                .then(r => r.json())
+                .then(j => {
+                    currentDomain = j.address.split('@')[1];
+                    document.getElementById('addr').textContent = j.address;
+                    document.getElementById('copy-section').style.display = 'block';
+                    document.getElementById('ttl-info').style.display = 'block';
+                    document.getElementById('ttl-minutes').textContent = j.ttl || 30;
+                    document.getElementById('send-from').value = j.address;
+                    loadMsgs();
+                    startPolling();
+                })
+                .catch(() => {
+                    // Fallback if API fails
+                    showToast('CONNECTION ERROR', 'error');
+                });
+        }
     });
   </script>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>📬 临时邮箱</h1>
-      <p>快速创建临时邮箱，接收验证邮件</p>
+      <h1>ALIEN MAIL</h1>
+      <p>SECURE / ANONYMOUS / EPHEMERAL</p>
     </div>
     
-    <div class="card">
+    <div class="card control-card">
       <div class="create-section">
         <div class="input-wrapper">
-          <input id="local" type="text" placeholder="自定义邮箱名称（可选）" autocomplete="off" />
+          <input id="local" type="text" placeholder="ENTER ALIAS..." autocomplete="off" onkeyup="if(event.key === 'Enter') createAddr()" />
         </div>
-        <button class="btn btn-primary" onclick="createAddr()">创建邮箱</button>
+        <button class="btn" onclick="createAddr()">INITIALIZE</button>
       </div>
       
       <div class="address-display">
-        <div>
-          <div class="address-label">当前邮箱地址</div>
-          <div id="addr" class="address-value empty">(尚未创建)</div>
+        <div class="address-info">
+            <div class="address-label">ACTIVE FREQUENCY</div>
+            <div id="addr" class="address-value empty">WAITING FOR INPUT...</div>
         </div>
-        <button id="copy-section" class="btn-copy" onclick="copyAddress()" style="display:none;">复制地址</button>
+        <button id="copy-section" class="btn btn-copy" onclick="copyAddress()" style="display:none;">COPY</button>
       </div>
       
-      <div id="ttl-info" style="display:none;margin-top:1rem;padding:1rem;background:#fff3cd;border-left:4px solid #ffc107;border-radius:8px;">
-        <div style="display:flex;align-items:center;gap:0.5rem;color:#856404;">
-          <span style="font-size:1.2rem;">⏰</span>
-          <span style="font-weight:600;">重要提示：</span>
-          <span>邮件将在收到后 <strong id="ttl-minutes">30</strong> 分钟后自动删除</span>
-        </div>
+      <div id="ttl-info">
+         ⚠️ WARNING: DATA PURGE IN <strong id="ttl-minutes">30</strong> MIN
       </div>
     </div>
-    
-    <div class="card">
-      <!-- 选项卡导航 -->
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('inbox')">
-          📨 收件箱 <span id="inbox-badge" class="badge" style="margin-left:0.5rem;">0</span>
-        </button>
-        <button class="tab" onclick="switchTab('compose')">
-          📤 发送邮件
-        </button>
+
+    <div class="card content-card">
+      <div class="card-header-strip">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('inbox')">
+            📥 INBOX <span id="inbox-badge" class="badge" style="margin-left:0.4rem;">0</span>
+          </button>
+          <button class="tab" onclick="switchTab('compose')">
+            📤 TRANSMIT
+          </button>
+        </div>
       </div>
       
-      <!-- 收件箱选项卡 -->
       <div id="inbox-tab" class="tab-content active">
-        <div id="messages-container" class="messages-container">
-          <div class="empty-state">
-            <div class="empty-state-icon">✨</div>
-            <h3>开始使用</h3>
-            <p>创建邮箱地址后，邮件将自动出现在这里</p>
+        <div class="scroll-area-internal">
+          <div id="messages-container" class="messages-container">
+            <div class="empty-state">
+              <div class="empty-state-icon">👾</div>
+              <h3>SYSTEM READY</h3>
+              <p>Scanning for incoming signals...</p>
+            </div>
           </div>
         </div>
       </div>
       
-      <!-- 发送邮件选项卡 -->
       <div id="compose-tab" class="tab-content">
-        <div style="display:flex;flex-direction:column;gap:1rem;">
-          <div>
-            <label style="display:block;margin-bottom:0.5rem;font-weight:600;color:#4a5568;">发件人</label>
-            <input id="send-from" type="text" readonly
-              style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;background:#f7fafc;color:#4a5568;cursor:not-allowed;" 
-              placeholder="请先创建邮箱" />
-            <small style="color:#718096;margin-top:0.25rem;display:block;">使用当前创建的邮箱地址</small>
-          </div>
-          
-          <div>
-            <label style="display:block;margin-bottom:0.5rem;font-weight:600;color:#4a5568;">收件人 *</label>
-            <input id="send-to" type="email" placeholder="recipient@example.com" required
-              style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;transition:all 0.2s;" 
-              onfocus="this.style.borderColor='#667eea'" 
-              onblur="this.style.borderColor='#e2e8f0'" />
-            <small style="color:#718096;margin-top:0.25rem;display:block;">多个收件人用逗号分隔</small>
-          </div>
-          
-          <div>
-            <label style="display:block;margin-bottom:0.5rem;font-weight:600;color:#4a5568;">主题 *</label>
-            <input id="send-subject" type="text" placeholder="邮件主题" required
-              style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;transition:all 0.2s;" 
-              onfocus="this.style.borderColor='#667eea'" 
-              onblur="this.style.borderColor='#e2e8f0'" />
-          </div>
-          
-          <div>
-            <label style="display:block;margin-bottom:0.5rem;font-weight:600;color:#4a5568;">内容 *</label>
-            <textarea id="send-body" placeholder="邮件正文..." required
-              style="width:100%;padding:0.75rem;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem;min-height:150px;resize:vertical;font-family:inherit;transition:all 0.2s;" 
-              onfocus="this.style.borderColor='#667eea'" 
-              onblur="this.style.borderColor='#e2e8f0'"></textarea>
-          </div>
-          
-          <div style="display:flex;gap:1rem;">
-            <button class="btn btn-primary" onclick="sendEmail()" style="flex:1;">
-              <span id="send-btn-text">📤 发送</span>
-            </button>
-            <button class="btn" onclick="clearCompose()" style="flex:1;background:#f7fafc;color:#4a5568;">
-              🗑️ 清空
-            </button>
+        <div class="scroll-area-natural">
+          <div class="compose-form">
+            <div>
+              <label style="font-size:0.7rem;color:var(--alien-green);font-weight:700;margin-bottom:0.3rem;display:block;">ORIGIN</label>
+              <input id="send-from" type="text" readonly style="cursor:not-allowed;border-style:dashed;" placeholder="NO UPLINK" />
+            </div>
+            <div>
+              <label style="font-size:0.7rem;color:var(--alien-green);font-weight:700;margin-bottom:0.3rem;display:block;">TARGET</label>
+              <input id="send-to" type="email" placeholder="RECIPIENT@GALAXY.COM" />
+            </div>
+            <div>
+              <label style="font-size:0.7rem;color:var(--alien-green);font-weight:700;margin-bottom:0.3rem;display:block;">SUBJECT</label>
+              <input id="send-subject" type="text" placeholder="HEADER INFO..." />
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column;">
+              <label style="font-size:0.7rem;color:var(--alien-green);font-weight:700;margin-bottom:0.3rem;display:block;">PAYLOAD</label>
+              <textarea id="send-body" class="compose-editor" placeholder="ENTER DATA STREAM..."></textarea>
+            </div>
+            <div style="display:flex; gap:1rem;">
+              <button id="send-btn" class="btn" onclick="sendEmail()" style="flex:2">TRANSMIT DATA</button>
+              <button class="btn" onclick="document.getElementById('send-body').value=''" style="flex:1;border-color:var(--text-muted);color:var(--text-muted);">PURGE</button>
+            </div>
           </div>
         </div>
-        
-        <div id="send-status" style="display:none;margin-top:1rem;padding:1rem;border-radius:8px;"></div>
       </div>
     </div>
   </div>
-  
   <div id="toast" class="toast"></div>
 </body>
 </html>`
@@ -1335,235 +1048,153 @@ const messageDetailTemplate = `<!doctype html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>%s - 邮件详情</title>
+  <title>%s - DECODED MESSAGE</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --alien-green: #39ff14;
+      --bg-dark: #020502;
+      --card-bg: rgba(5, 20, 5, 0.9);
+      --text-main: #e0f0e0;
+      --border-color: rgba(57, 255, 20, 0.3);
     }
+    
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #e0e7ff 0%%, #f3f4f6 100%%);
-      min-height: 100vh;
-      padding: 1rem 1rem;
-      color: #2d3748;
+      font-family: 'Share Tech Mono', monospace;
+      background-color: #000;
+      background-image: radial-gradient(circle at 50%% 30%%, #0f2010 0%%, #000 100%%);
+      height: 100vh;
+      overflow: hidden; 
+      padding: 1.5rem;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
     }
     
+    .scanline {
+      position: fixed; top: 0; left: 0; width: 100%%; height: 100%%;
+      background: linear-gradient(to bottom, transparent 50%%, rgba(0, 255, 0, 0.02) 50%%);
+      background-size: 100%% 4px; pointer-events: none; z-index: 999;
+    }
+
     .container {
-      max-width: 650px;
+      max-width: 900px;
+      width: 100%%;
       margin: 0 auto;
-      animation: fadeIn 0.6s ease-out;
+      height: 100%%;
+      display: flex;
+      flex-direction: column;
+      animation: fadeIn 0.3s ease-out;
     }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1rem;
+      flex-shrink: 0;
     }
-    
+
     .back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: #4a5568;
-      text-decoration: none;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-      padding: 0.4rem 0.85rem;
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 8px;
-      transition: all 0.3s ease;
-      font-size: 0.8rem;
+      color: var(--alien-green); text-decoration: none; font-weight: bold;
+      font-size: 1rem; text-transform: uppercase; letter-spacing: 2px;
+      display: flex; align-items: center; gap: 0.5rem;
+      text-shadow: 0 0 5px var(--alien-green);
     }
-    
-    .back-btn:hover {
-      background: rgba(255, 255, 255, 0.9);
-      transform: translateX(-3px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+    .back-btn:hover { text-decoration: underline; }
     
     .card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(20px) saturate(180%%);
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), 
-                  0 1px 3px rgba(255, 255, 255, 0.5) inset;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
+      box-shadow: 0 0 30px rgba(0, 50, 0, 0.5);
+      clip-path: polygon(0 0, 100%% 0, 100%% calc(100%% - 20px), calc(100%% - 20px) 100%%, 0 100%%);
     }
     
     .email-header {
-      background: linear-gradient(135deg, #f6f8fb 0%%, #e9ecef 100%%);
-      padding: 1rem;
-      border-bottom: 2px solid #e2e8f0;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(0, 50, 0, 0.2);
+      flex-shrink: 0;
     }
     
     .subject {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #2d3748;
-      margin-bottom: 0.75rem;
-      line-height: 1.3;
+      font-size: 1.4rem; font-weight: 700; color: white; margin-bottom: 0.8rem; letter-spacing: 1px;
     }
     
     .meta-row {
-      display: grid;
-      grid-template-columns: 70px 1fr;
-      gap: 0.6rem;
-      margin-bottom: 0.4rem;
-      align-items: start;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+      color: #80a080; margin-bottom: 0.3rem; display: flex; gap: 1rem;
     }
+    .meta-label { color: var(--alien-green); min-width: 60px; }
     
-    .meta-label {
-      font-weight: 600;
-      color: #718096;
-      font-size: 0.7rem;
-    }
-    
-    .meta-value {
-      color: #2d3748;
-      word-break: break-all;
-      font-size: 0.8rem;
-    }
-    
-    .email-body {
-      padding: 1rem;
-      min-height: 300px;
-      background: white;
+    .email-content-wrapper {
+      flex: 1;
+      position: relative;
+      background: white; 
+      overflow: hidden;
     }
     
     #html-frame {
-      width: 100%%;
-      min-height: 350px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      background: white;
+      width: 100%%; height: 100%%; border: none;
     }
     
     .text-content {
-      font-family: 'Courier New', monospace;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      color: #2d3748;
-      line-height: 1.5;
-      background: #f8fafc;
-      padding: 0.75rem;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
-      font-size: 0.75rem;
-    }
-    
-    .no-content {
-      text-align: center;
-      padding: 2rem;
-      color: #a0aec0;
-      font-size: 0.9rem;
+      padding: 2rem; font-family: 'JetBrains Mono', monospace;
+      color: #333; overflow-y: auto; height: 100%%; white-space: pre-wrap;
     }
     
     .action-bar {
-      display: flex;
-      gap: 0.6rem;
-      padding: 0.75rem 1rem;
-      background: #f8fafc;
-      border-top: 2px solid #e2e8f0;
-      flex-wrap: wrap;
+      padding: 1rem; background: rgba(0, 20, 0, 0.6);
+      border-top: 1px solid var(--border-color);
+      display: flex; gap: 1rem; justify-content: flex-end;
+      flex-shrink: 0;
     }
     
     .btn {
-      padding: 0.5rem 1rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-family: inherit;
-      text-decoration: none;
-      display: inline-block;
+      padding: 0.6rem 1.2rem; border: 1px solid var(--alien-green); 
+      text-decoration: none; font-size: 0.8rem; font-weight: bold; 
+      color: var(--alien-green); text-transform: uppercase;
+      transition: 0.3s; background: rgba(0, 50, 0, 0.2);
     }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #f093fb 0%%, #f5576c 100%%);
-      color: white;
-      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(245, 87, 108, 0.5);
-    }
-    
-    .btn-secondary {
-      background: white;
-      color: #667eea;
-      border: 2px solid #667eea;
-    }
-    
-    .btn-secondary:hover {
-      background: #667eea;
-      color: white;
-    }
-    
-    @media (max-width: 768px) {
-      .meta-row {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
-      }
-      
-      .tabs {
-        overflow-x: auto;
-      }
-      
-      .tab {
-        padding: 0.75rem 1rem;
-        font-size: 0.9rem;
-        white-space: nowrap;
-      }
-      
-      .tab-content {
-        padding: 1rem;
-      }
-      
-      .action-bar {
-        flex-direction: column;
-      }
-      
-      .btn {
-        width: 100%%;
-      }
-    }
+    .btn:hover { background: var(--alien-green); color: black; box-shadow: 0 0 15px var(--alien-green); }
+    .btn-outline { border-style: dashed; }
+
   </style>
 </head>
 <body>
+  <div class="scanline"></div>
   <div class="container">
-    <a href="/?mailbox=%s" class="back-btn">← 返回收件箱</a>
+    <div class="top-bar">
+      <a href="/?mailbox=%s" class="back-btn">← RETURN TO BRIDGE</a>
+      <div style="font-size:0.7rem; color:#446644;">SECURE CHANNEL ESTABLISHED</div>
+    </div>
     
     <div class="card">
       <div class="email-header">
         <div class="subject">%s</div>
-        <div class="meta-row">
-          <div class="meta-label">发件人:</div>
-          <div class="meta-value">%s</div>
-        </div>
-        <div class="meta-row">
-          <div class="meta-label">时间:</div>
-          <div class="meta-value">%s</div>
-        </div>
+        <div class="meta-row"><span class="meta-label">FROM:</span> <span>%s</span></div>
+        <div class="meta-row"><span class="meta-label">TIME:</span> <span>%s</span></div>
       </div>
       
-      <div class="email-body">
+      <div class="email-content-wrapper">
         %s
       </div>
       
       <div class="action-bar">
-        <a href="/?mailbox=%s" class="btn btn-primary">返回收件箱</a>
-        <a href="/api/messages/%s/%s?format=raw" download="message.eml" class="btn btn-secondary">下载 EML 文件</a>
+        <a href="/api/messages/%s/%s?format=raw" download="message.eml" class="btn btn-outline">DOWNLOAD RAW</a>
+        <a href="/?mailbox=%s" class="btn">CLOSE VIEWER</a>
       </div>
     </div>
   </div>

@@ -44,6 +44,9 @@ WORKDIR /app
 # 从构建阶段复制二进制文件
 COPY --from=builder /build/temp-mail /app/temp-mail
 
+# 复制静态文件
+COPY --from=builder /build/static /app/static
+
 # 设置文件权限
 RUN chmod +x /app/temp-mail
 
