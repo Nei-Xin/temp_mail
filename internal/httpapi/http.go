@@ -241,7 +241,9 @@ func renderMessageDetailPage(msg storage.Message, local, domain string) string {
 	// Choose which content to display
 	bodyHTML := ""
 	if htmlContent != "" {
-		bodyHTML = fmt.Sprintf(`<iframe id="html-frame" srcdoc="%s" sandbox="allow-same-origin"></iframe>`, escapeHTMLAttr(htmlContent))
+		// 为HTML内容注入暗色主题样式
+		styledHTML := injectDarkThemeStyles(htmlContent)
+		bodyHTML = fmt.Sprintf(`<iframe id="html-frame" srcdoc="%s" sandbox="allow-same-origin"></iframe>`, escapeHTMLAttr(styledHTML))
 	} else if textContent != "" {
 		bodyHTML = fmt.Sprintf(`<pre class="text-content">%s</pre>`, escapeHTML(textContent))
 	} else {
@@ -437,6 +439,66 @@ func escapeHTMLAttr(s string) string {
 	return s
 }
 
+// injectDarkThemeStyles 为HTML邮件内容注入暗色主题样式
+func injectDarkThemeStyles(htmlContent string) string {
+	darkThemeCSS := `<style>
+		body {
+			background-color: rgba(5, 20, 5, 0.95) !important;
+			color: #c0d0c0 !important;
+			font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+			padding: 1.5rem !important;
+			line-height: 1.6 !important;
+		}
+		* {
+			color: #c0d0c0 !important;
+			border-color: rgba(57, 255, 20, 0.3) !important;
+		}
+		a {
+			color: #39ff14 !important;
+			text-decoration: underline !important;
+		}
+		a:hover {
+			color: #5fff5f !important;
+		}
+		table {
+			border-collapse: collapse !important;
+			background: rgba(0, 30, 0, 0.3) !important;
+		}
+		th, td {
+			border: 1px solid rgba(57, 255, 20, 0.2) !important;
+			padding: 0.5rem !important;
+		}
+		th {
+			background: rgba(57, 255, 20, 0.1) !important;
+			color: #39ff14 !important;
+			font-weight: bold !important;
+		}
+		pre, code {
+			background: rgba(0, 40, 0, 0.5) !important;
+			border: 1px solid rgba(57, 255, 20, 0.2) !important;
+			padding: 0.5rem !important;
+			border-radius: 3px !important;
+			color: #39ff14 !important;
+		}
+		img {
+			filter: brightness(0.9) contrast(1.1) !important;
+			border: 1px solid rgba(57, 255, 20, 0.2) !important;
+		}
+	</style>`
+	
+	// 尝试在 </head> 或 <body> 标签前插入样式
+	if strings.Contains(strings.ToLower(htmlContent), "</head>") {
+		htmlContent = strings.Replace(htmlContent, "</head>", darkThemeCSS+"</head>", 1)
+	} else if strings.Contains(strings.ToLower(htmlContent), "<body") {
+		htmlContent = strings.Replace(htmlContent, "<body", darkThemeCSS+"<body", 1)
+	} else {
+		// 如果没有标准HTML结构，直接在开头插入
+		htmlContent = darkThemeCSS + htmlContent
+	}
+	
+	return htmlContent
+}
+
 const indexHTML = `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -597,7 +659,8 @@ const indexHTML = `<!doctype html>
 
     .content-card {
       flex: 1; 
-      min-height: 0; 
+      min-height: 0;
+      max-height: 500px;
       display: flex;
       flex-direction: column;
       padding: 0;
@@ -608,6 +671,7 @@ const indexHTML = `<!doctype html>
       flex: none;
       height: auto;
       min-height: 500px;
+      max-height: none;
       overflow: visible;
     }
 
@@ -756,8 +820,8 @@ const indexHTML = `<!doctype html>
     /* 移动端/小屏适配 */
     @media (max-height: 700px), (max-width: 600px) {
       body { height: auto; overflow-y: auto; }
-      .container { height: auto; padding: 0.5rem; }
-      .card { min-height: 500px; }
+      .container { height: auto; padding: 0.5rem; gap: 1rem; }
+      .content-card { max-height: 400px; min-height: 300px; }
       .address-display { flex-direction: column; align-items: stretch; gap: 0.5rem; }
       .address-value { font-size: 0.85rem; word-break: break-all; }
       .btn-copy { width: 100%; }
@@ -1142,17 +1206,27 @@ const messageDetailTemplate = `<!doctype html>
     .email-content-wrapper {
       flex: 1;
       position: relative;
-      background: white; 
+      background: rgba(5, 20, 5, 0.9);
       overflow: hidden;
+      border-top: 1px solid rgba(57, 255, 20, 0.1);
     }
     
     #html-frame {
       width: 100%%; height: 100%%; border: none;
+      background: rgba(5, 20, 5, 0.95);
     }
     
     .text-content {
       padding: 2rem; font-family: 'JetBrains Mono', monospace;
-      color: #333; overflow-y: auto; height: 100%%; white-space: pre-wrap;
+      color: #c0d0c0; overflow-y: auto; height: 100%%; white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    
+    .no-content {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-style: italic;
     }
     
     .action-bar {
