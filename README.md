@@ -31,7 +31,7 @@ docker run -d --name temp-mail \
   -e DOMAIN=example.com \
   -e MESSAGE_TTL=30m \
   -e TZ=Asia/Shanghai \
-  neixin/temp-mail:v3.1
+  neixin/temp-mail:latest
 ```
 
 或使用 Docker Compose：
@@ -41,7 +41,7 @@ version: '3.8'
 
 services:
   temp-mail:
-    image: neixin/temp-mail:v3.1
+    image: neixin/temp-mail:latest
     container_name: temp-mail
     restart: unless-stopped
     ports:
