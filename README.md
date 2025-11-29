@@ -2,6 +2,8 @@
 
 Temp Mail 是一个即开即用的临时邮箱系统，内置 SMTP 收件服务、可视化 Web 界面以及 RESTful API。服务会在内存中保存指定时间的邮件副本，适合测试注册流程、一次性消息收发等临时场景。
 
+![演示](image/image.png)
+
 ## 功能亮点
 - 一键生成随机或自定义前缀的临时邮箱地址，自动展示剩余有效期
 - Web 控制台实时轮询邮件、支持消息详情页与 `EML` 源文件下载
@@ -18,36 +20,59 @@ Temp Mail 是一个即开即用的临时邮箱系统，内置 SMTP 收件服务�
 
 ## 快速开始
 
-### 本地运行（Go 环境）
-```bash
-# 克隆后在项目根目录执行
-go run ./cmd/temp-mail
-```
+使用 Docker 快速部署：
 
-默认 HTTP 监听 `:8080`，SMTP 监听 `:2525`，访问 `http://localhost:8080` 即可使用 Web 界面。
-
-### 使用官方镜像
 ```bash
 docker run -d --name temp-mail \
   -p 8080:8080 \
-  -p 2525:2525 \
-  -e DOMAIN=tmp.local \
+  -p 25:25 \
+  -e HTTP_ADDR=:8080 \
+  -e SMTP_ADDR=:25 \
+  -e DOMAIN=example.com \
   -e MESSAGE_TTL=30m \
-  neixin/temp-mail
+  -e TZ=Asia/Shanghai \
+  neixin/temp-mail:v3.1
 ```
 
-若需要监听标准 25 端口，请将 `-p 2525:2525` 替换为 `-p 25:25`，并确保宿主机允许绑定特权端口。
+或使用 Docker Compose：
 
-### Docker Compose
-```bash
-docker compose up -d
+```yaml
+version: '3.8'
+
+services:
+  temp-mail:
+    image: neixin/temp-mail:v3.1
+    container_name: temp-mail
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # HTTP Web/API
+      - "25:25"       # SMTP 服务
+    environment:
+      - HTTP_ADDR=:8080
+      - SMTP_ADDR=:25
+      - DOMAIN=example.com
+      - MESSAGE_TTL=30m
+      - TZ=Asia/Shanghai
 ```
 
-可通过编辑 `.env` 或在 `docker-compose.yml` 中覆盖环境变量，常见示例：
-```env
-DOMAIN=mail.example.com
-MESSAGE_TTL=45m
-```
+启动后访问 `http://服务器IP:8080` 即可使用 Web 界面。
+
+**DNS 记录配置**：
+
+假设您的域名为 `example.com`，服务器 IP 为 `1.2.3.4`，需添加以下 DNS 记录：
+
+| 类型 | 主机记录 | 记录值 | 说明 |
+| ---- | -------- | ------ | ---- |
+| A    | @        | 1.2.3.4 | 将域名指向服务器 IP |
+| MX   | @        | example.com (优先级 10) | 指定邮件服务器，用于接收邮件 |
+| TXT  | @        | v=spf1 a mx ~all | SPF 记录，声明允许该服务器发送邮件 |
+| TXT  | _dmarc   | v=DMARC1; p=none; rua=mailto:admin@example.com | DMARC 策略（可选，建议配置） |
+
+> **提示**：SPF 和 DMARC 记录可提升发件信誉，减少被收件方拒收或标记为垃圾邮件的概率。
+
+**注意**：
+- 绑定 25 端口需要 root 权限，确保服务器防火墙和 ISP 允许该端口
+- `DOMAIN` 环境变量需与 MX 记录的域名一致
 
 ## 环境变量
 

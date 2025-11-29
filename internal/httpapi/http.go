@@ -485,7 +485,7 @@ func injectDarkThemeStyles(htmlContent string) string {
 			border: 1px solid rgba(57, 255, 20, 0.2) !important;
 		}
 	</style>`
-	
+
 	// 尝试在 </head> 或 <body> 标签前插入样式
 	if strings.Contains(strings.ToLower(htmlContent), "</head>") {
 		htmlContent = strings.Replace(htmlContent, "</head>", darkThemeCSS+"</head>", 1)
@@ -495,7 +495,7 @@ func injectDarkThemeStyles(htmlContent string) string {
 		// 如果没有标准HTML结构，直接在开头插入
 		htmlContent = darkThemeCSS + htmlContent
 	}
-	
+
 	return htmlContent
 }
 
